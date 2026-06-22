@@ -1,5 +1,5 @@
 ---
-// 页面结构，JavaScript 代码在独立的 .js 文件中
+// 页面结构，所有 JavaScript 在 public/products.js 中
 ---
 
 <html>
@@ -24,7 +24,7 @@
     <div id="product-container">
       <div class="loading">⏳ 加载商品中...</div>
     </div>
-    <!-- 添加 is:inline 指令 -->
+    <!-- 外部 JS 文件 -->
     <script is:inline src="/products.js"></script>
   </body>
 </html>
