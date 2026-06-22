@@ -1,8 +1,5 @@
 ---
-// 只做页面结构，数据在客户端加载
-const siteUrl = 'https://daqi.asia';
-const consumerKey = 'ck_7314eb29ed0e1d50b8f9296bb0a590e7e0845e5c';
-const consumerSecret = 'cs_c2d99cdc2b9094943d11e897202ceae1cb8a98a4';
+// 页面结构，数据在客户端加载
 ---
 
 <html>
@@ -36,11 +33,10 @@ const consumerSecret = 'cs_c2d99cdc2b9094943d11e897202ceae1cb8a98a4';
         const credentials = btoa(`${consumerKey}:${consumerSecret}`);
         const container = document.getElementById('product-container');
 
-        const proxyUrl = 'https://daqi-asia.talley-linjg.workers.dev';
-        const targetApi = `${siteUrl}/wp-json/wc/v3/products?per_page=20`;
+        const apiUrl = `${siteUrl}/wp-json/wc/v3/products?per_page=20`;
 
         try {
-          const response = await fetch(`${proxyUrl}?target=${encodeURIComponent(targetApi)}`, {
+          const response = await fetch(apiUrl, {
             headers: {
               'Authorization': `Basic ${credentials}`,
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
