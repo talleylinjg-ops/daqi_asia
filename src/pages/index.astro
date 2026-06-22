@@ -25,19 +25,20 @@
       <div class="loading">⏳ 加载商品中...</div>
     </div>
 
-    <script>
+    <!-- 关键改动：添加 is:inline 指令 -->
+    <script is:inline>
       (function() {
-        const siteUrl = 'https://daqi.asia';
-        const consumerKey = 'ck_7314eb29ed0e1d50b8f9296bb0a590e7e0845e5c';
-        const consumerSecret = 'cs_c2d99cdc2b9094943d11e897202ceae1cb8a98a4';
-        const container = document.getElementById('product-container');
+        var siteUrl = 'https://daqi.asia';
+        var consumerKey = 'ck_7314eb29ed0e1d50b8f9296bb0a590e7e0845e5c';
+        var consumerSecret = 'cs_c2d99cdc2b9094943d11e897202ceae1cb8a98a4';
+        var container = document.getElementById('product-container');
 
         async function loadProducts() {
           try {
-            const credentials = btoa(consumerKey + ':' + consumerSecret);
-            const apiUrl = siteUrl + '/wp-json/wc/v3/products?per_page=20';
+            var credentials = btoa(consumerKey + ':' + consumerSecret);
+            var apiUrl = siteUrl + '/wp-json/wc/v3/products?per_page=20';
 
-            const response = await fetch(apiUrl, {
+            var response = await fetch(apiUrl, {
               headers: {
                 'Authorization': 'Basic ' + credentials,
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -48,14 +49,14 @@
               throw new Error('HTTP ' + response.status);
             }
 
-            const products = await response.json();
+            var products = await response.json();
 
             if (!products || products.length === 0) {
               container.innerHTML = '<p style="text-align:center;color:#999;">暂无商品</p>';
               return;
             }
 
-            let html = '<div class="product-grid">';
+            var html = '<div class="product-grid">';
             for (var i = 0; i < products.length; i++) {
               var product = products[i];
               var imgSrc = product.images && product.images.length > 0
