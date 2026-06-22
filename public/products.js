@@ -1,4 +1,3 @@
-// 这是独立的 JS 文件，不会被 Astro 解析，因此不会产生语法错误
 (function() {
   var siteUrl = 'https://daqi.asia';
   var consumerKey = 'ck_7314eb29ed0e1d50b8f9296bb0a590e7e0845e5c';
