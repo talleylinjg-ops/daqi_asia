@@ -18,7 +18,7 @@ try {
   const response = await fetch(`${siteUrl}/wp-json/wc/v3/products?per_page=20`, {
     headers: {
       'Authorization': `Basic ${credentials}`,
-      'User-Agent': 'AstroBuild/1.0'  // 自定义 User-Agent，避免被拦截
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
   });
   
@@ -28,7 +28,7 @@ try {
   
   const data = await response.json();
   if (Array.isArray(data) && data.length > 0) {
-    products = data;  // 如果成功获取，使用真实数据
+    products = data;
   }
 } catch (error) {
   console.error('API 请求失败，使用模拟数据：', error.message);
@@ -71,6 +71,5 @@ try {
         ))
       }
     </div>
-    <!-- 可以添加一个小提示，告知当前数据状态（但不必要） -->
   </body>
 </html>
