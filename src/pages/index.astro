@@ -1,38 +1,8 @@
 ---
-// 从 WooCommerce API 获取商品数据（如果失败则回退到模拟数据）
+// 只做页面结构，数据在客户端加载
 const siteUrl = 'https://daqi.asia';
-const consumerKey = 'ck_ae5c12efe0481fb21e2203fc3f6b32fd5cfd0d80';
-const consumerSecret = 'cs_6bfc3ec5b26a3b043875cbf032550e3602e1be8e';
-
-// 默认模拟数据（当 API 请求失败时使用）
-let products = [
-  { id: 1, name: '模拟商品 A', price: '19.99', images: [{ src: 'https://via.placeholder.com/300x300/FF6B6B/FFFFFF?text=商品A' }] },
-  { id: 2, name: '模拟商品 B', price: '29.99', images: [{ src: 'https://via.placeholder.com/300x300/4ECDC4/FFFFFF?text=商品B' }] },
-  { id: 3, name: '模拟商品 C', price: '39.99', images: [{ src: 'https://via.placeholder.com/300x300/FFE66D/333333?text=商品C' }] },
-  { id: 4, name: '模拟商品 D', price: '49.99', images: [{ src: 'https://via.placeholder.com/300x300/1A535C/FFFFFF?text=商品D' }] },
-  { id: 5, name: '模拟商品 E', price: '59.99', images: [{ src: 'https://via.placeholder.com/300x300/FF9F1C/FFFFFF?text=商品E' }] },
-];
-
-try {
-  const credentials = btoa(`${consumerKey}:${consumerSecret}`);
-  const response = await fetch(`${siteUrl}/wp-json/wc/v3/products?per_page=20`, {
-    headers: {
-      'Authorization': `Basic ${credentials}`,
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    }
-  });
-  
-  if (!response.ok) {
-    throw new Error(`API 返回错误：${response.status}`);
-  }
-  
-  const data = await response.json();
-  if (Array.isArray(data) && data.length > 0) {
-    products = data;
-  }
-} catch (error) {
-  console.error('API 请求失败，使用模拟数据：', error.message);
-}
+const consumerKey = 'ck_734c59cee8ab672bcdf4b307de1a10c32aa5d819';
+const consumerSecret = 'cs_3a2c6b23c2857d77932aff3093a748644038f390';
 ---
 
 <html>
@@ -49,27 +19,64 @@ try {
       .product-card .price { color: #e44d26; font-size: 20px; font-weight: bold; }
       .product-card .add-to-cart { background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 10px; font-size: 16px; }
       .product-card .add-to-cart:hover { background: #45a049; }
+      .loading { text-align: center; padding: 50px; font-size: 18px; color: #666; }
     </style>
   </head>
   <body>
     <h1>🛒 Daqi Asia 热卖商品</h1>
-    <div class="product-grid">
-      {
-        products.map((product) => (
-          <div class="product-card">
-            {
-              product.images && product.images.length > 0 ? (
-                <img src={product.images[0].src} alt={product.name} />
-              ) : (
-                <div style="background: #eee; height: 200px; display: flex; align-items: center; justify-content: center; border-radius: 5px;">无图片</div>
-              )
-            }
-            <h3>{product.name}</h3>
-            <div class="price">${product.price}</div>
-            <button class="add-to-cart">加入购物车</button>
-          </div>
-        ))
-      }
+    <div id="product-container">
+      <div class="loading">⏳ 加载商品中...</div>
     </div>
+
+    <script>
+      // 在浏览器端获取商品数据
+      (async () => {
+        const siteUrl = 'https://daqi.asia';
+        const consumerKey = 'ck_ae5c12efe0481fb21e2203fc3f6b32fd5cfd0d80';
+        const consumerSecret = 'cs_6bfc3ec5b26a3b043875cbf032550e3602e1be8e';
+        const credentials = btoa(`${consumerKey}:${consumerSecret}`);
+        const container = document.getElementById('product-container');
+
+        try {
+          const response = await fetch(`${siteUrl}/wp-json/wc/v3/products?per_page=20`, {
+            headers: {
+              'Authorization': `Basic ${credentials}`,
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+          });
+
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+          const products = await response.json();
+
+          if (!Array.isArray(products) || products.length === 0) {
+            container.innerHTML = '<p style="text-align:center;color:#999;">暂无商品</p>';
+            return;
+          }
+
+          // 生成商品卡片 HTML
+          let html = '<div class="product-grid">';
+          products.forEach(product => {
+            const imgSrc = product.images && product.images.length > 0
+              ? product.images[0].src
+              : 'https://via.placeholder.com/300x300/eee/ccc?text=无图片';
+            html += `
+              <div class="product-card">
+                <img src="${imgSrc}" alt="${product.name}" />
+                <h3>${product.name}</h3>
+                <div class="price">$${product.price}</div>
+                <button class="add-to-cart">加入购物车</button>
+              </div>
+            `;
+          });
+          html += '</div>';
+          container.innerHTML = html;
+
+        } catch (error) {
+          container.innerHTML = `<p style="text-align:center;color:red;">⚠️ 商品加载失败，请稍后刷新</p>`;
+          console.error('API 请求失败:', error);
+        }
+      })();
+    </script>
   </body>
 </html>
