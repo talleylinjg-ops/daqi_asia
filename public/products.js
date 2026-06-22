@@ -1,7 +1,7 @@
 (function() {
   var siteUrl = 'https://daqi.asia';
-  var consumerKey = 'ck_7314eb29ed0e1d50b8f9296bb0a590e7e0845e5c';
-  var consumerSecret = 'cs_c2d99cdc2b9094943d11e897202ceae1cb8a98a4';
+  var consumerKey = 'ck_a1272d3f8b662d6a904dfa7e88143446646b850d';
+  var consumerSecret = 'cs_058b663863f1337e28d4129bd813ff674f6ce489';
   var container = document.getElementById('product-container');
 
   async function loadProducts() {
