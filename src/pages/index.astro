@@ -29,22 +29,23 @@ const consumerSecret = 'cs_c2d99cdc2b9094943d11e897202ceae1cb8a98a4';
     </div>
 
     <script>
-      // 在浏览器端获取商品数据
       (async () => {
         const siteUrl = 'https://daqi.asia';
-        const consumerKey = 'ck_ae5c12efe0481fb21e2203fc3f6b32fd5cfd0d80';
-        const consumerSecret = 'cs_6bfc3ec5b26a3b043875cbf032550e3602e1be8e';
+        const consumerKey = 'ck_7314eb29ed0e1d50b8f9296bb0a590e7e0845e5c';
+        const consumerSecret = 'cs_c2d99cdc2b9094943d11e897202ceae1cb8a98a4';
         const credentials = btoa(`${consumerKey}:${consumerSecret}`);
         const container = document.getElementById('product-container');
 
-const proxyUrl = 'https://daqi-asia.talley-linjg.workers.dev'; // 你的 Worker 地址
-const targetApi = `${siteUrl}/wp-json/wc/v3/products?per_page=20`;
-const response = await fetch(`${proxyUrl}?target=${encodeURIComponent(targetApi)}`, {
-  headers: {
-    'Authorization': `Basic ${credentials}`,
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-  }
-});
+        const proxyUrl = 'https://daqi-asia.talley-linjg.workers.dev';
+        const targetApi = `${siteUrl}/wp-json/wc/v3/products?per_page=20`;
+
+        try {
+          const response = await fetch(`${proxyUrl}?target=${encodeURIComponent(targetApi)}`, {
+            headers: {
+              'Authorization': `Basic ${credentials}`,
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+          });
 
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
@@ -55,7 +56,6 @@ const response = await fetch(`${proxyUrl}?target=${encodeURIComponent(targetApi)
             return;
           }
 
-          // 生成商品卡片 HTML
           let html = '<div class="product-grid">';
           products.forEach(product => {
             const imgSrc = product.images && product.images.length > 0
