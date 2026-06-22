@@ -1,8 +1,8 @@
 ---
 // 只做页面结构，数据在客户端加载
 const siteUrl = 'https://daqi.asia';
-const consumerKey = 'ck_734c59cee8ab672bcdf4b307de1a10c32aa5d819';
-const consumerSecret = 'cs_3a2c6b23c2857d77932aff3093a748644038f390';
+const consumerKey = 'ck_7314eb29ed0e1d50b8f9296bb0a590e7e0845e5c';
+const consumerSecret = 'cs_c2d99cdc2b9094943d11e897202ceae1cb8a98a4';
 ---
 
 <html>
@@ -37,13 +37,14 @@ const consumerSecret = 'cs_3a2c6b23c2857d77932aff3093a748644038f390';
         const credentials = btoa(`${consumerKey}:${consumerSecret}`);
         const container = document.getElementById('product-container');
 
-        try {
-          const response = await fetch(`${siteUrl}/wp-json/wc/v3/products?per_page=20`, {
-            headers: {
-              'Authorization': `Basic ${credentials}`,
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-          });
+const proxyUrl = 'https://daqi-asia.talley-linjg.workers.dev'; // 你的 Worker 地址
+const targetApi = `${siteUrl}/wp-json/wc/v3/products?per_page=20`;
+const response = await fetch(`${proxyUrl}?target=${encodeURIComponent(targetApi)}`, {
+  headers: {
+    'Authorization': `Basic ${credentials}`,
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+  }
+});
 
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
