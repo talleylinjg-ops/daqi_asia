@@ -1,53 +1,81 @@
-(function() {
-  var siteUrl = 'https://daqi.asia';
-  var consumerKey = 'ck_06d450d4d615501dc5e207a354c65db3ca5d72c2';
-  var consumerSecret = 'cs_e2350eb8c6d8f3afa7f5c3b1a11236a7595ed847';
-  var container = document.getElementById('product-container');
+// WooCommerce API 密钥（使用您最后生成的有效密钥）
+const consumerKey = 'ck_06d450d4d615501dc5e207a354c65db3ca5d72c2';
+const consumerSecret = 'cs_e2350eb8c6d8f3afa7f5c3b1a11236a7595ed847';
 
-  async function loadProducts() {
-    try {
-      var credentials = btoa(consumerKey + ':' + consumerSecret);
-      var apiUrl = siteUrl + '/wp-json/wc/v3/products?per_page=20';
+// Cloudflare Worker 代理地址（用于解决 CORS 和认证问题）
+const proxyUrl = 'https://daqi-asia.talley-linjg.workers.dev';
 
-      var response = await fetch(apiUrl, {
-        headers: {
-          'Authorization': 'Basic ' + credentials,
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
+// 目标 API 地址
+const targetApi = 'https://daqi.asia/wp-json/wc/v3/products?per_page=20';
 
-      if (!response.ok) {
-        throw new Error('HTTP ' + response.status);
-      }
-
-      var products = await response.json();
-
-      if (!products || products.length === 0) {
-        container.innerHTML = '<p style="text-align:center;color:#999;">暂无商品</p>';
-        return;
-      }
-
-      var html = '<div class="product-grid">';
-      for (var i = 0; i < products.length; i++) {
-        var product = products[i];
-        var imgSrc = product.images && product.images.length > 0
-          ? product.images[0].src
-          : 'https://via.placeholder.com/300x300/eee/ccc?text=无图片';
-        html += '<div class="product-card">';
-        html += '<img src="' + imgSrc + '" alt="' + product.name + '" />';
-        html += '<h3>' + product.name + '</h3>';
-        html += '<div class="price">$' + product.price + '</div>';
-        html += '<button class="add-to-cart">加入购物车</button>';
-        html += '</div>';
-      }
-      html += '</div>';
-      container.innerHTML = html;
-
-    } catch (error) {
-      container.innerHTML = '<p style="text-align:center;color:red;">⚠️ 商品加载失败，请稍后刷新</p>';
-      console.error('API 请求失败:', error);
-    }
+// 获取商品数据并渲染
+async function loadProducts() {
+  const container = document.getElementById('product-container');
+  if (!container) {
+    console.error('找不到 product-container 元素');
+    return;
   }
 
-  loadProducts();
-})();
+  // 显示加载状态
+  container.innerHTML = '<div class="loading">⏳ 加载商品中...</div>';
+
+  try {
+    // 生成 Basic Auth 凭证
+    const credentials = btoa(`${consumerKey}:${consumerSecret}`);
+
+    // 通过 Worker 代理发起请求
+    const response = await fetch(`${proxyUrl}?target=${encodeURIComponent(targetApi)}`, {
+      headers: {
+        'Authorization': `Basic ${credentials}`,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    // 检查响应状态
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const products = await response.json();
+
+    // 检查是否有商品数据
+    if (!Array.isArray(products) || products.length === 0) {
+      container.innerHTML = '<p style="text-align:center;color:#999;">暂无商品</p>';
+      return;
+    }
+
+    // 渲染商品卡片
+    let html = '<div class="product-grid">';
+    products.forEach(product => {
+      // 获取商品图片
+      const imgSrc = product.images && product.images.length > 0
+        ? product.images[0].src
+        : 'https://via.placeholder.com/300x300/eee/ccc?text=无图片';
+
+      html += `
+        <div class="product-card">
+          <img src="${imgSrc}" alt="${product.name}" />
+          <h3>${product.name}</h3>
+          <div class="price">$${product.price}</div>
+          <button class="add-to-cart" data-product-id="${product.id}">加入购物车</button>
+        </div>
+      `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+
+    // 给所有“加入购物车”按钮绑定事件（示例）
+    document.querySelectorAll('.add-to-cart').forEach(btn => {
+      btn.addEventListener('click', function() {
+        alert(`商品 ID ${this.dataset.productId} 已加入购物车（演示功能）`);
+      });
+    });
+
+  } catch (error) {
+    console.error('API 请求失败:', error);
+    container.innerHTML = `<p style="text-align:center;color:red;">⚠️ 商品加载失败，请稍后刷新</p>`;
+  }
+}
+
+// 页面加载完成后执行
+document.addEventListener('DOMContentLoaded', loadProducts);
