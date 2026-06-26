@@ -1,6 +1,6 @@
 // WooCommerce API 密钥
-const consumerKey = 'ck_06d450d4d615501dc5e207a354c65db3ca5d72c2';
-const consumerSecret = 'cs_e2350eb8c6d8f3afa7f5c3b1a11236a7595ed847';
+const consumerKey = 'ck_8e53e17efba521ed240e3993d522677a3a438862';
+const consumerSecret = 'cs_8cbc41d8d8451ecface53ba1c620d5093df9bc4d';
 
 // 获取商品数据并渲染
 async function loadProducts() {
