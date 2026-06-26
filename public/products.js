@@ -37,21 +37,102 @@ async function loadProducts() {
       return;
     }
 
-    // 渲染商品卡片
-    let html = '<div class="product-grid">';
+    // 渲染商品卡片（带完整样式）
+    let html = `
+      <style>
+        .product-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+          gap: 20px;
+          padding: 20px;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+        .product-card {
+          background: #ffffff;
+          border-radius: 12px;
+          padding: 16px;
+          box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+        }
+        .product-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+        .product-card img {
+          width: 100%;
+          height: 200px;
+          object-fit: cover;
+          border-radius: 8px;
+          background: #f5f5f5;
+        }
+        .product-card h3 {
+          font-size: 16px;
+          margin: 12px 0 8px;
+          min-height: 40px;
+          overflow: hidden;
+          font-weight: 600;
+          color: #333;
+          line-height: 1.3;
+        }
+        .product-card .price {
+          color: #e44d26;
+          font-size: 20px;
+          font-weight: bold;
+          margin: 8px 0 12px;
+        }
+        .product-card .add-to-cart {
+          background: #4CAF50;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 6px;
+          cursor: pointer;
+          width: 100%;
+          font-size: 15px;
+          font-weight: 500;
+          transition: background 0.2s ease;
+          margin-top: auto;
+        }
+        .product-card .add-to-cart:hover {
+          background: #45a049;
+        }
+        .product-card .add-to-cart:active {
+          transform: scale(0.97);
+        }
+        .loading {
+          text-align: center;
+          padding: 60px;
+          font-size: 18px;
+          color: #999;
+        }
+        .error-msg {
+          text-align: center;
+          padding: 60px;
+          font-size: 16px;
+          color: #e74c3c;
+        }
+      </style>
+      <div class="product-grid">
+    `;
+
     products.forEach(product => {
       const imgSrc = product.images && product.images.length > 0
         ? product.images[0].src
         : 'https://via.placeholder.com/300x300/eee/ccc?text=无图片';
       html += `
         <div class="product-card">
-          <img src="${imgSrc}" alt="${product.name}" />
+          <img src="${imgSrc}" alt="${product.name}" loading="lazy" />
           <h3>${product.name}</h3>
           <div class="price">$${product.price}</div>
           <button class="add-to-cart" data-product-id="${product.id}">加入购物车</button>
         </div>
       `;
     });
+
     html += '</div>';
     container.innerHTML = html;
 
@@ -64,7 +145,7 @@ async function loadProducts() {
 
   } catch (error) {
     console.error('API 请求失败:', error);
-    container.innerHTML = `<p style="text-align:center;color:red;">⚠️ 商品加载失败，请稍后刷新</p>`;
+    container.innerHTML = `<p class="error-msg">⚠️ 商品加载失败，请稍后刷新</p>`;
   }
 }
 
