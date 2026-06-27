@@ -47,7 +47,7 @@ async function addToCart(productId, quantity = 1) {
   }
 }
 
-// 变体商品专用函数
+// 变体商品专用函数（修复attributes格式，纯对象传递）
 async function addVariableToCart(productId, quantity = 1, variationId, attrObj) {
   try {
     const res = await fetch(`${WP_API_BASE}/cart/items`, {
@@ -201,7 +201,7 @@ async function loadProducts() {
     html += '</div>';
     container.innerHTML = html;
 
-    // 修改按钮点击事件：简单商品直接加购，变体商品弹窗提示选规格
+    // 按钮点击事件：简单商品直接加购，变体弹窗提示
     document.querySelectorAll('.add-to-cart').forEach(btn => {
       btn.addEventListener('click', async function() {
         const pid = Number(this.dataset.productId);
@@ -211,7 +211,7 @@ async function loadProducts() {
           if(res?.key) alert(`商品${pid}加入购物车成功`);
           else alert('加入失败');
         }else if(pType === 'variable'){
-          alert('该商品是变体产品，请选择规格后调用 addVariableToCart');
+          alert('该商品为变体商品，请选择规格后调用 addVariableToCart(productId,数量,变体ID,{属性键值})');
         }
       });
     });
