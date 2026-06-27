@@ -47,8 +47,8 @@ async function addToCart(productId, quantity = 1) {
   }
 }
 
-// 变体商品专用函数（修复attributes格式，纯对象传递）
-async function addVariableToCart(productId, quantity = 1, variationId, attrObj) {
+// 变体商品专用函数：仅传递variationID，无需attributes
+async function addVariableToCart(productId, quantity = 1, variationId) {
   try {
     const res = await fetch(`${WP_API_BASE}/cart/items`, {
       method: "POST",
@@ -59,8 +59,7 @@ async function addVariableToCart(productId, quantity = 1, variationId, attrObj) 
       body: JSON.stringify({
         id: productId,
         quantity: quantity,
-        variation: variationId,
-        attributes: attrObj
+        variation: variationId
       })
     });
     const data = await res.json();
@@ -211,7 +210,7 @@ async function loadProducts() {
           if(res?.key) alert(`商品${pid}加入购物车成功`);
           else alert('加入失败');
         }else if(pType === 'variable'){
-          alert('该商品为变体商品，请选择规格后调用 addVariableToCart(productId,数量,变体ID,{属性键值})');
+          alert('该商品为变体商品，请调用 addVariableToCart(商品ID,数量,变体ID)');
         }
       });
     });
