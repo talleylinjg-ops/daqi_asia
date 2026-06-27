@@ -37,8 +37,8 @@ async function addToCart(productId, quantity = 1) {
   }
 }
 
-// 变体商品【强制兼容写法】variation + attributes 一起提交，彻底绕过Missing attributes
-async function addVariableToCart(productId, quantity = 1, variationId) {
+// 变体商品专用函数：attributes 使用官方数组标准格式 [{name, value}]
+async function addVariableToCart(productId, quantity = 1) {
   try {
     const res = await fetch(`${STORE_API}/cart/items`, {
       method: "POST",
@@ -47,10 +47,12 @@ async function addVariableToCart(productId, quantity = 1, variationId) {
       body: JSON.stringify({
         id: productId,
         quantity: quantity,
-        variation: variationId,
-        attributes: {
-          "pa_direction": "input"
-        }
+        attributes: [
+          {
+            "name": "pa_direction",
+            "value": "input"
+          }
+        ]
       })
     });
     const data = await res.json();
@@ -185,7 +187,7 @@ async function loadProducts() {
           const res = await addToCart(pid,1);
           alert(res?.key ? `商品${pid}加入购物车成功` : '加入失败');
         }else if(pType === 'variable'){
-          alert('变体调用格式：addVariableToCart(商品ID, 数量, 变体ID)');
+          alert('变体商品调用格式：addVariableToCart(商品ID, 数量)');
         }
       });
     });
