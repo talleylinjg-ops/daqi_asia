@@ -1,75 +1,60 @@
-// WooCommerce v3 密钥（拉商品列表用）
+// 【高危警告】consumerKey/Secret 禁止直接写前端！上线请改用后端代理接口中转
+// WooCommerce v3 密钥（仅本地调试使用，生产环境后端中转）
 const consumerKey = 'ck_8e53e17efba521ed240e3993d522677a3a438862';
 const consumerSecret = 'cs_8cbc41d8d8451ecface53ba1c620d5093df9bc4d';
-// Store API 购物车接口地址
+// Store API 购物车接口地址 + 购物车页面跳转链接
 const WP_API_BASE = "https://daqi.asia/wp-json/wc/store";
+const CART_PAGE_URL = "https://daqi.asia/cart"; // 你的购物车页面地址
+
+// 统一封装Fetch请求，减少重复代码
+async function fetchRequest(url, options = {}) {
+  const defaultOpt = {
+    method: "GET",
+    credentials: "same-origin", // 修复原代码credentials非法值问题
+    headers: {
+      "Content-Type": "application/json"
+    }
+  };
+  const mergeOpt = { ...defaultOpt, ...options };
+  try {
+    const res = await fetch(url, mergeOpt);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "请求异常");
+    return data;
+  } catch (err) {
+    console.error("接口请求错误：", err);
+    return false;
+  }
+}
 
 // ===================== 购物车相关函数 =====================
 // 获取购物车
 async function getCartData() {
-  try {
-    const res = await fetch(`${WP_API_BASE}/cart`, {
-      method: "GET",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      }
-    });
-    const data = await res.json();
-    console.log("购物车数据：", data);
-    return data;
-  } catch (err) {
-    console.error("获取购物车失败：", err);
-    return null;
-  }
+  return await fetchRequest(`${WP_API_BASE}/cart`);
 }
 
 // 简单商品加购
 async function addToCart(productId, quantity = 1) {
-  try {
-    const res = await fetch(`${WP_API_BASE}/cart/items`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        id: productId,
-        quantity: quantity
-      })
-    });
-    const data = await res.json();
-    console.log("加购返回结果：", data);
-    return data;
-  } catch (err) {
-    console.error("加入购物车失败：", err);
-    return null;
-  }
+  return await fetchRequest(`${WP_API_BASE}/cart/items`, {
+    method: "POST",
+    body: JSON.stringify({
+      id: productId,
+      quantity: quantity
+    })
+  });
 }
 
-// 变体商品专用函数（保留备用，页面不再调用）
+// 变体商品专用函数
 async function addVariableToCart(productId, quantity = 1, variationId, attrObj) {
-  try {
-    const res = await fetch(`${WP_API_BASE}/cart/items`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        id: productId,
-        quantity: quantity,
-        variation: variationId,
-        attributes: attrObj
-      })
-    });
-    const data = await res.json();
-    console.log("变体商品加购结果：", data);
-    return data;
-  } catch (err) {
-    console.error("变体商品加购失败：", err);
-    return null;
-  }
+  return await fetchRequest(`${WP_API_BASE}/cart/items`, {
+    method: "POST",
+    body: JSON.stringify({
+      id: productId,
+      quantity: quantity,
+      variation: variationId,
+      attributes: attrObj
+    })
+  });
 }
 
 // ===================== 原有加载商品逻辑 =====================
@@ -185,14 +170,17 @@ async function loadProducts() {
     `;
 
     products.forEach(product => {
-      const imgSrc = product.images && product.images.length > 0
+      // 兼容无图商品
+      const imgSrc = product.images?.length > 0
         ? product.images[0].src
         : 'https://via.placeholder.com/300x300/eee/ccc?text=无图片';
+      // 兼容价格为空
+      const priceText = product.price ? `$${product.price}` : "暂无定价";
       html += `
         <div class="product-card">
           <img src="${imgSrc}" alt="${product.name}" loading="lazy" />
           <h3>${product.name}</h3>
-          <div class="price">$${product.price}</div>
+          <div class="price">${priceText}</div>
           <button class="add-to-cart" data-product-id="${product.id}" data-product-type="${product.type}">加入购物车</button>
         </div>
       `;
@@ -201,20 +189,33 @@ async function loadProducts() {
     html += '</div>';
     container.innerHTML = html;
 
-    // ========== 重写按钮点击逻辑：删除全部alert弹窗 ==========
+    // 重构点击逻辑：完全移除alert，简单商品加购成功直接跳转购物车
     document.querySelectorAll('.add-to-cart').forEach(btn => {
       btn.addEventListener('click', async function() {
         const pid = Number(this.dataset.productId);
         const pType = this.dataset.productType;
-        // 固定变体商品17381 直接跳转原生加购链接，无弹窗
-        if (pid === 17381) {
-          window.location.href = "https://daqi.asia/?add-to-cart=17381&quantity=1&variation_id=17382&attribute_pa_direction=input";
-          return;
-        }
-        // 普通商品执行AJAX加购，成功仅控制台打印，无弹窗提示
+        // 按钮加载状态防重复点击
+        const originText = this.innerText;
+        this.innerText = "处理中...";
+        this.disabled = true;
+
         if (pType === 'simple') {
-          await addToCart(pid,1);
+          const res = await addToCart(pid, 1);
+          if (res?.key) {
+            // 加购成功，直接跳转购物车（无弹窗）
+            window.location.href = CART_PAGE_URL;
+          } else {
+            // 失败仅控制台打印，不弹alert
+            console.log(`商品${pid}加购失败`, res);
+          }
+        } else if (pType === 'variable') {
+          // 变体商品移除alert，直接跳商品详情页选规格
+          window.location.href = `https://daqi.asia/product/${product.slug}`;
         }
+
+        // 恢复按钮状态
+        this.innerText = originText;
+        this.disabled = false;
       });
     });
 
