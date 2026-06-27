@@ -47,8 +47,8 @@ async function addToCart(productId, quantity = 1) {
   }
 }
 
-// 变体商品专用函数【官方标准格式】只传商品ID、数量、属性数组
-async function addVariableToCart(productId, quantity = 1, attributeList) {
+// 变体商品专用函数 兼容标准格式 variation + attributes对象
+async function addVariableToCart(productId, quantity = 1, variationId, attrObj) {
   try {
     const res = await fetch(`${WP_API_BASE}/cart/items`, {
       method: "POST",
@@ -59,7 +59,8 @@ async function addVariableToCart(productId, quantity = 1, attributeList) {
       body: JSON.stringify({
         id: productId,
         quantity: quantity,
-        attributes: attributeList
+        variation: variationId,
+        attributes: attrObj
       })
     });
     const data = await res.json();
@@ -200,7 +201,7 @@ async function loadProducts() {
     html += '</div>';
     container.innerHTML = html;
 
-    // 按钮点击事件：简单商品直接加购，变体弹窗提示
+    // 按钮点击事件：简单商品直接加购，变体弹窗提示传参格式
     document.querySelectorAll('.add-to-cart').forEach(btn => {
       btn.addEventListener('click', async function() {
         const pid = Number(this.dataset.productId);
@@ -210,7 +211,7 @@ async function loadProducts() {
           if(res?.key) alert(`商品${pid}加入购物车成功`);
           else alert('加入失败');
         }else if(pType === 'variable'){
-          alert('变体商品调用格式：addVariableToCart(商品ID, 数量, [{"name":"pa_direction","value":"input"}])');
+          alert('变体商品调用格式：addVariableToCart(商品ID,数量,变体ID,{"pa_direction":"input"})');
         }
       });
     });
