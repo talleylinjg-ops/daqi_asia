@@ -23,10 +23,10 @@ async function getCartData() {
   }
 }
 
-// 简单商品加购 v3标准
+// 简单商品加入购物车 正确接口 /cart/item
 async function addToCart(productId, quantity = 1) {
   try {
-    const res = await fetch(`${API_BASE}/cart/add_item`, {
+    const res = await fetch(`${API_BASE}/cart/item`, {
       method: "POST",
       credentials: "include",
       headers: {
@@ -47,10 +47,10 @@ async function addToCart(productId, quantity = 1) {
   }
 }
 
-// 变体商品加购 v3标准（仅product_id、variation_id、quantity，无attributes）
+// 变体商品加入购物车 正确接口 /cart/item
 async function addVariableToCart(productId, quantity = 1, variationId) {
   try {
-    const res = await fetch(`${API_BASE}/cart/add_item`, {
+    const res = await fetch(`${API_BASE}/cart/item`, {
       method: "POST",
       credentials: "include",
       headers: {
@@ -194,7 +194,7 @@ async function loadProducts() {
           const res = await addToCart(pid,1);
           alert(res?.key ? `商品${pid}加入购物车成功` : '加入失败');
         }else if(pType === 'variable'){
-          alert('变体调用格式：addVariableToCart(商品ID, 数量, 变体ID)');
+          alert('变体商品调用格式：addVariableToCart(商品ID,数量,变体ID)');
         }
       });
     });
