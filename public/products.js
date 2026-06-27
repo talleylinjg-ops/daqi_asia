@@ -1,71 +1,41 @@
 const consumerKey = 'ck_8e53e17efba521ed240e3993d522677a3a438862';
 const consumerSecret = 'cs_8cbc41d8d8451ecface53ba1c620d5093df9bc4d';
-const STORE_API = "https://daqi.asia/wp-json/wc/store";
+const WC_V3_API = "https://daqi.asia/wp-json/wc/v3";
 
-// 获取购物车
-async function getCartData() {
+// 普通商品、变体统一原生加购函数
+async function addToCartNative(productId, quantity = 1, variationId = 0, attrs = {}) {
   try {
-    const res = await fetch(`${STORE_API}/cart`, {
-      method: "GET",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" }
+    const formData = new FormData();
+    formData.append('action', 'woocommerce_add_to_cart');
+    formData.append('product_id', productId);
+    formData.append('quantity', quantity);
+    formData.append('variation_id', variationId);
+    formData.append('_wpnonce', wcAddToCartNonce);
+    // 追加所有属性
+    Object.keys(attrs).forEach(key => {
+      formData.append(`attribute_${key}`, attrs[key]);
     });
-    const data = await res.json();
-    console.log("购物车数据：", data);
-    return data;
-  } catch (err) {
-    console.error("获取购物车失败：", err);
-    return null;
-  }
-}
 
-// 普通商品加购
-async function addToCart(productId, quantity = 1) {
-  try {
-    const res = await fetch(`${STORE_API}/cart/items`, {
+    const res = await fetch(`${siteUrl}/wp-admin/admin-ajax.php`, {
       method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: productId,
-        quantity: quantity
-      })
+      body: formData,
+      credentials: "include"
     });
-    const data = await res.json();
-    console.log("普通商品加购结果：", data);
-    return data;
+    const text = await res.text();
+    console.log("加购返回：", text);
+    return text;
   } catch (err) {
-    console.error("普通商品加购失败：", err);
+    console.error("加购失败：", err);
     return null;
   }
 }
 
-// 变体商品：同时携带 variation + attributes 数组，双字段满足校验
+// 变体商品专用调用封装
 async function addVariableToCart(productId, quantity = 1, variationId) {
-  try {
-    const res = await fetch(`${STORE_API}/cart/items`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: productId,
-        quantity: quantity,
-        variation: variationId,
-        attributes: [
-          {
-            "name": "pa_direction",
-            "value": "input"
-          }
-        ]
-      })
-    });
-    const data = await res.json();
-    console.log("变体商品加购结果：", data);
-    return data;
-  } catch (err) {
-    console.error("变体商品加购失败：", err);
-    return null;
-  }
+  // 此处填写该变体完整属性
+  return await addToCartNative(productId, quantity, variationId, {
+    pa_direction: "input"
+  });
 }
 
 // 加载商品列表
@@ -78,7 +48,7 @@ async function loadProducts() {
   container.innerHTML = '<div class="loading">⏳ 加载商品中...</div>';
   try {
     const auth = btoa(`${consumerKey}:${consumerSecret}`);
-    const response = await fetch(`https://daqi.asia/wp-json/wc/v3/products?per_page=20`, {
+    const response = await fetch(`${WC_V3_API}/products?per_page=20`, {
       headers: {
         "Authorization": `Basic ${auth}`,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -188,8 +158,8 @@ async function loadProducts() {
         const pid = Number(this.dataset.productId);
         const pType = this.dataset.productType;
         if(pType === 'simple'){
-          const res = await addToCart(pid,1);
-          alert(res?.key ? `商品${pid}加入购物车成功` : '加入失败');
+          const res = await addToCartNative(pid,1);
+          alert("加入完成，查看控制台返回");
         }else if(pType === 'variable'){
           alert('变体调用格式：addVariableToCart(商品ID,数量,变体ID)');
         }
