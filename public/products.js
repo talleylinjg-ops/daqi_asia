@@ -19,7 +19,7 @@ async function getCartData() {
   }
 }
 
-// 普通商品 simple 专用AJAX加购（已经验证可用）
+// 普通商品 simple AJAX加购（已验证可用）
 async function addToCart(productId, quantity = 1) {
   try {
     const res = await fetch(`${STORE_API}/cart/items`, {
@@ -29,7 +29,7 @@ async function addToCart(productId, quantity = 1) {
       body: JSON.stringify({ id: productId, quantity: quantity })
     });
     const data = await res.json();
-    console.log("普通商品加购成功：", data);
+    console.log("加购返回结果：", data);
     return data;
   } catch (err) {
     console.error("普通商品加购失败：", err);
@@ -153,20 +153,19 @@ async function loadProducts() {
     html += '</div>';
     container.innerHTML = html;
 
-    // 按钮点击逻辑区分普通商品 / 变体商品17381
+    // 按钮点击逻辑：移除弹窗，变体直接跳转链接
     document.querySelectorAll('.add-to-cart').forEach(btn => {
       btn.addEventListener('click', async function () {
         const pid = Number(this.dataset.productId);
         const pType = this.dataset.productType;
-        // 变体商品 17381 直接跳转原生加购链接，不走AJAX（彻底避开400）
+        // 固定变体商品17381，点击直接跳转原生加购链接
         if (pid === 17381 && pType === 'variable') {
           window.location.href = "https://daqi.asia/?add-to-cart=17381&quantity=1&variation_id=17382&attribute_pa_direction=input";
           return;
         }
-        // 普通商品执行AJAX加购（已经验证成功）
+        // 普通商品执行AJAX加购
         if (pType === 'simple') {
-          const res = await addToCart(pid, 1);
-          alert("商品已加入购物车，打开控制台查看返回");
+          await addToCart(pid, 1);
         }
       });
     });
