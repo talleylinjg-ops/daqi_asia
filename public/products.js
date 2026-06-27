@@ -26,7 +26,10 @@ async function addToCart(productId, quantity = 1) {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: productId, quantity: quantity })
+      body: JSON.stringify({
+        id: productId,
+        quantity: quantity
+      })
     });
     const data = await res.json();
     console.log("普通商品加购结果：", data);
@@ -37,7 +40,7 @@ async function addToCart(productId, quantity = 1) {
   }
 }
 
-// 变体商品专用函数：attributes 使用官方数组标准格式 [{name, value}]
+// 变体商品 官方标准请求结构（只保留id、quantity、标准数组attributes，无variation）
 async function addVariableToCart(productId, quantity = 1) {
   try {
     const res = await fetch(`${STORE_API}/cart/items`, {
@@ -49,7 +52,7 @@ async function addVariableToCart(productId, quantity = 1) {
         quantity: quantity,
         attributes: [
           {
-            "name": "pa_direction",
+            "name": "Direction",
             "value": "input"
           }
         ]
@@ -64,7 +67,7 @@ async function addVariableToCart(productId, quantity = 1) {
   }
 }
 
-// 加载商品列表
+// 商品列表渲染
 async function loadProducts() {
   const container = document.getElementById('product-container');
   if (!container) {
@@ -77,7 +80,7 @@ async function loadProducts() {
     const response = await fetch(`https://daqi.asia/wp-json/wc/v3/products?per_page=20`, {
       headers: {
         "Authorization": `Basic ${auth}`,
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
       }
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -187,7 +190,7 @@ async function loadProducts() {
           const res = await addToCart(pid,1);
           alert(res?.key ? `商品${pid}加入购物车成功` : '加入失败');
         }else if(pType === 'variable'){
-          alert('变体商品调用格式：addVariableToCart(商品ID, 数量)');
+          alert('变体调用格式：addVariableToCart(商品ID, 数量)');
         }
       });
     });
