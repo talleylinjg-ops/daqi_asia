@@ -4,7 +4,7 @@ const consumerSecret = 'cs_8cbc41d8d8451ecface53ba1c620d5093df9bc4d';
 // Store API 购物车接口地址
 const WP_API_BASE = "https://daqi.asia/wp-json/wc/store";
 
-// ===================== 购物车相关函数（新增全套，解决 not defined =====================
+// ===================== 购物车相关函数 =====================
 // 获取购物车
 async function getCartData() {
   try {
@@ -12,8 +12,7 @@ async function getCartData() {
       method: "GET",
       credentials: "include",
       headers: {
-        "Content-Type": "application/json",
-        "X-WC-Store-API-Nonce": window.WC_STORE_NONCE
+        "Content-Type": "application/json"
       }
     });
     const data = await res.json();
@@ -32,8 +31,7 @@ async function addToCart(productId, quantity = 1) {
       method: "POST",
       credentials: "include",
       headers: {
-        "Content-Type": "application/json",
-        "X-WC-Store-API-Nonce": window.WC_STORE_NONCE
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         id: productId,
@@ -49,15 +47,14 @@ async function addToCart(productId, quantity = 1) {
   }
 }
 
-// 变体商品专用函数（你需要的 addVariableToCart）
+// 变体商品专用函数
 async function addVariableToCart(productId, quantity = 1, variationId, attrObj) {
   try {
     const res = await fetch(`${WP_API_BASE}/cart/items`, {
       method: "POST",
       credentials: "include",
       headers: {
-        "Content-Type": "application/json",
-        "X-WC-Store-API-Nonce": window.WC_STORE_NONCE
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         id: productId,
@@ -75,7 +72,7 @@ async function addVariableToCart(productId, quantity = 1, variationId, attrObj) 
   }
 }
 
-// ===================== 原有加载商品逻辑（保留，仅修改按钮点击事件 =====================
+// ===================== 原有加载商品逻辑 =====================
 async function loadProducts() {
   const container = document.getElementById('product-container');
   if (!container) {
