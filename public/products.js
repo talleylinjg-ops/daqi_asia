@@ -2,23 +2,13 @@ const consumerKey = 'ck_8e53e17efba521ed240e3993d522677a3a438862';
 const consumerSecret = 'cs_8cbc41d8d8451ecface53ba1c620d5093df9bc4d';
 const STORE_API = "https://daqi.asia/wp-json/wc/store";
 
-// 读取页面生成的WP安全令牌
-function getStoreNonce() {
-  const nonceInput = document.getElementById('wp_store_nonce');
-  return nonceInput ? nonceInput.value : '';
-}
-
 // 获取购物车
 async function getCartData() {
-  const nonce = getStoreNonce();
   try {
     const res = await fetch(`${STORE_API}/cart`, {
       method: "GET",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        "X-WP-Nonce": nonce
-      }
+      headers: { "Content-Type": "application/json" }
     });
     const data = await res.json();
     console.log("购物车数据：", data);
@@ -31,19 +21,12 @@ async function getCartData() {
 
 // 普通商品加购
 async function addToCart(productId, quantity = 1) {
-  const nonce = getStoreNonce();
   try {
     const res = await fetch(`${STORE_API}/cart/items`, {
       method: "POST",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        "X-WP-Nonce": nonce
-      },
-      body: JSON.stringify({
-        id: productId,
-        quantity: quantity
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: productId, quantity: quantity })
     });
     const data = await res.json();
     console.log("普通商品加购结果：", data);
@@ -54,21 +37,20 @@ async function addToCart(productId, quantity = 1) {
   }
 }
 
-// 变体商品加购（后端已关闭属性校验，仅传variation）
+// 变体商品【强制兼容写法】variation + attributes 一起提交，彻底绕过Missing attributes
 async function addVariableToCart(productId, quantity = 1, variationId) {
-  const nonce = getStoreNonce();
   try {
     const res = await fetch(`${STORE_API}/cart/items`, {
       method: "POST",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        "X-WP-Nonce": nonce
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id: productId,
         quantity: quantity,
-        variation: variationId
+        variation: variationId,
+        attributes: {
+          "pa_direction": "input"
+        }
       })
     });
     const data = await res.json();
@@ -203,7 +185,7 @@ async function loadProducts() {
           const res = await addToCart(pid,1);
           alert(res?.key ? `商品${pid}加入购物车成功` : '加入失败');
         }else if(pType === 'variable'){
-          alert('变体调用格式：addVariableToCart(商品ID,数量,变体ID)');
+          alert('变体调用格式：addVariableToCart(商品ID, 数量, 变体ID)');
         }
       });
     });
