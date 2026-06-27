@@ -2,7 +2,7 @@ const STORE_API = "https://daqi.asia/wp-json/wc/store";
 const consumerKey = 'ck_8e53e17efba521ed240e3993d522677a3a438862';
 const consumerSecret = 'cs_8cbc41d8d8451ecface53ba1c620d5093df9bc4d';
 
-// 获取购物车
+// 获取购物车列表
 async function getCartData() {
   try {
     const res = await fetch(`${STORE_API}/cart`, {
@@ -19,7 +19,7 @@ async function getCartData() {
   }
 }
 
-// 普通商品 AJAX 加购
+// 普通单品AJAX加购
 async function addToCart(productId, quantity = 1) {
   try {
     const res = await fetch(`${STORE_API}/cart/items`, {
@@ -59,86 +59,7 @@ async function loadProducts() {
       container.innerHTML = '<p style="text-align:center;color:#999;">暂无商品</p>';
       return;
     }
-    let html = `
-      <style>
-        .product-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-          gap: 20px;
-          padding: 20px;
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-        .product-card {
-          background: #ffffff;
-          border-radius: 12px;
-          padding: 16px;
-          box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-        }
-        .product-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-        }
-        .product-card img {
-          width: 100%;
-          height: 200px;
-          object-fit: cover;
-          border-radius: 8px;
-          background: #f5f5f5;
-        }
-        .product-card h3 {
-          font-size: 16px;
-          margin: 12px 0 8px;
-          min-height: 40px;
-          overflow: hidden;
-          font-weight: 600;
-          color: #333;
-          line-height: 1.3;
-        }
-        .product-card .price {
-          color: #e44d26;
-          font-size: 20px;
-          font-weight: bold;
-          margin: 8px 0 12px;
-        }
-        .product-card .add-to-cart {
-          background: #4CAF50;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 6px;
-          cursor: pointer;
-          width: 100%;
-          font-size: 15px;
-          font-weight: 500;
-          transition: background 0.2s ease;
-          margin-top: auto;
-        }
-        .product-card .add-to-cart:hover {
-          background: #45a049;
-        }
-        .product-card .add-to-cart:active {
-          transform: scale(0.97);
-        }
-        .loading {
-          text-align: center;
-          padding: 60px;
-          font-size: 18px;
-          color: #999;
-        }
-        .error-msg {
-          text-align: center;
-          padding: 60px;
-          font-size: 16px;
-          color: #e74c3c;
-        }
-      </style>
-      <div class="product-grid">
-    `;
+    let html = `<div class="product-grid">`;
     products.forEach(product => {
       const imgSrc = product.images?.length ? product.images[0].src : "https://via.placeholder.com/300x300/eee/ccc?text=无图片";
       html += `
@@ -150,28 +71,28 @@ async function loadProducts() {
         </div>
       `;
     });
-    html += '</div>';
+    html += `</div>`;
     container.innerHTML = html;
 
-    // 点击事件：无任何弹窗，先判断17381再处理普通商品
+    // 点击逻辑：完全删除alert弹窗，17381直接跳转，其余simple走AJAX
     document.querySelectorAll('.add-to-cart').forEach(btn => {
       btn.addEventListener('click', async function () {
         const pid = Number(this.dataset.productId);
         const pType = this.dataset.productType;
-        // 固定变体17381 直接跳转
+        // 固定变体商品ID17381，直接跳转原生加购链接
         if (pid === 17381) {
           window.location.href = "https://daqi.asia/?add-to-cart=17381&quantity=1&variation_id=17382&attribute_pa_direction=input";
           return;
         }
-        // 普通商品执行AJAX
-        if (pType === 'simple') {
+        // 普通单品执行AJAX加购
+        if (pType === "simple") {
           await addToCart(pid, 1);
         }
       });
     });
   } catch (error) {
     console.error("商品加载失败：", error);
-    container.innerHTML = `<p class="error-msg">⚠️ 商品加载失败，请稍后刷新</p>`;
+    container.innerHTML = `<p style="text-align:center;color:red;">⚠️ 商品加载失败，请稍后刷新</p>`;
   }
 }
 
