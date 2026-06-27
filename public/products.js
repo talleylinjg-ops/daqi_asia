@@ -1,8 +1,7 @@
-// WooCommerce v3 API 密钥
 const consumerKey = 'ck_8e53e17efba521ed240e3993d522677a3a438862';
 const consumerSecret = 'cs_8cbc41d8d8451ecface53ba1c620d5093df9bc4d';
 const API_BASE = "https://daqi.asia/wp-json/wc/v3";
-const basicAuth = btoa(`${consumerKey}:${consumerSecret}`);
+const authHeader = "Basic " + btoa(`${consumerKey}:${consumerSecret}`);
 
 // 获取购物车
 async function getCartData() {
@@ -12,7 +11,7 @@ async function getCartData() {
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Basic ${basicAuth}`
+        "Authorization": authHeader
       }
     });
     const data = await res.json();
@@ -24,7 +23,7 @@ async function getCartData() {
   }
 }
 
-// 简单商品加入购物车
+// 简单商品加购 v3标准
 async function addToCart(productId, quantity = 1) {
   try {
     const res = await fetch(`${API_BASE}/cart/add_item`, {
@@ -32,7 +31,7 @@ async function addToCart(productId, quantity = 1) {
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Basic ${basicAuth}`
+        "Authorization": authHeader
       },
       body: JSON.stringify({
         product_id: productId,
@@ -48,7 +47,7 @@ async function addToCart(productId, quantity = 1) {
   }
 }
 
-// 变体商品加入购物车（v3接口仅需product_id+variation_id，无需attributes）
+// 变体商品加购 v3标准（仅product_id、variation_id、quantity，无attributes）
 async function addVariableToCart(productId, quantity = 1, variationId) {
   try {
     const res = await fetch(`${API_BASE}/cart/add_item`, {
@@ -56,7 +55,7 @@ async function addVariableToCart(productId, quantity = 1, variationId) {
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Basic ${basicAuth}`
+        "Authorization": authHeader
       },
       body: JSON.stringify({
         product_id: productId,
@@ -84,7 +83,7 @@ async function loadProducts() {
   try {
     const response = await fetch(`${API_BASE}/products?per_page=20`, {
       headers: {
-        "Authorization": `Basic ${basicAuth}`,
+        "Authorization": authHeader,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
     });
@@ -195,12 +194,12 @@ async function loadProducts() {
           const res = await addToCart(pid,1);
           alert(res?.key ? `商品${pid}加入购物车成功` : '加入失败');
         }else if(pType === 'variable'){
-          alert('变体商品调用格式：addVariableToCart(商品ID,数量,变体ID)');
+          alert('变体调用格式：addVariableToCart(商品ID, 数量, 变体ID)');
         }
       });
     });
   } catch (error) {
-    console.error('API 请求失败：', error);
+    console.error('商品加载失败：', error);
     container.innerHTML = `<p class="error-msg">⚠️ 商品加载失败，请稍后刷新</p>`;
   }
 }
