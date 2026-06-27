@@ -18,7 +18,7 @@ async function getCartData() {
     const data = await res.json();
     console.log("购物车数据：", data);
     return data;
-  } catch (err) {
+  } catch (err)
     console.error("获取购物车失败：", err);
     return null;
   }
@@ -41,13 +41,13 @@ async function addToCart(productId, quantity = 1) {
     const data = await res.json();
     console.log("加购返回结果：", data);
     return data;
-  } catch (err) {
+  } catch (err)
     console.error("加入购物车失败：", err);
     return null;
   }
 }
 
-// 变体商品专用函数 纯标准attributes数组 无variation
+// 变体商品专用函数 修正attributes数组标准格式
 async function addVariableToCart(productId, quantity = 1, attrList) {
   try {
     const res = await fetch(`${WP_API_BASE}/cart/items`, {
@@ -65,7 +65,7 @@ async function addVariableToCart(productId, quantity = 1, attrList) {
     const data = await res.json();
     console.log("变体商品加购结果：", data);
     return data;
-  } catch (err) {
+  } catch (err)
     console.error("变体商品加购失败：", err);
     return null;
   }
@@ -210,7 +210,7 @@ async function loadProducts() {
           if(res?.key) alert(`商品${pid}加入购物车成功`);
           else alert('加入失败');
         }else if(pType === 'variable'){
-          alert('变体商品调用格式：addVariableToCart(商品ID,数量,[{"name":"pa_direction","value":"input"}])');
+          alert('变体商品调用格式：addVariableToCart(商品ID,数量,[{"pa_direction":"input"}])');
         }
       });
     });
