@@ -26,7 +26,10 @@ async function addToCart(productId, quantity = 1) {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: productId, quantity: quantity })
+      body: JSON.stringify({
+        id: productId,
+        quantity: quantity
+      })
     });
     const data = await res.json();
     console.log("普通商品加购结果：", data);
@@ -37,8 +40,8 @@ async function addToCart(productId, quantity = 1) {
   }
 }
 
-// 变体商品 固定标准结构：id + quantity + 标准attributes数组（官方强制格式）
-async function addVariableToCart(productId, quantity = 1) {
+// 变体商品：同时携带 variation + attributes 数组，双字段满足校验
+async function addVariableToCart(productId, quantity = 1, variationId) {
   try {
     const res = await fetch(`${STORE_API}/cart/items`, {
       method: "POST",
@@ -47,6 +50,7 @@ async function addVariableToCart(productId, quantity = 1) {
       body: JSON.stringify({
         id: productId,
         quantity: quantity,
+        variation: variationId,
         attributes: [
           {
             "name": "pa_direction",
@@ -64,7 +68,7 @@ async function addVariableToCart(productId, quantity = 1) {
   }
 }
 
-// 商品列表渲染
+// 加载商品列表
 async function loadProducts() {
   const container = document.getElementById('product-container');
   if (!container) {
@@ -183,16 +187,16 @@ async function loadProducts() {
       btn.addEventListener('click', async function() {
         const pid = Number(this.dataset.productId);
         const pType = this.dataset.productType;
-        if (pType === 'simple') {
-          const res = await addToCart(pid, 1);
+        if(pType === 'simple'){
+          const res = await addToCart(pid,1);
           alert(res?.key ? `商品${pid}加入购物车成功` : '加入失败');
-        } else if (pType === 'variable') {
-          alert('变体调用格式：addVariableToCart(商品ID, 数量)');
+        }else if(pType === 'variable'){
+          alert('变体调用格式：addVariableToCart(商品ID,数量,变体ID)');
         }
       });
     });
   } catch (error) {
-    console.error("商品加载失败：", error);
+    console.error('商品加载失败：', error);
     container.innerHTML = `<p class="error-msg">⚠️ 商品加载失败，请稍后刷新</p>`;
   }
 }
