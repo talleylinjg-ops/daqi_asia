@@ -117,6 +117,95 @@ async function addVariableToCart(productId, quantity = 1, variationId, attrObj) 
   }
 }
 
+// ===================== 弹窗工具函数 无跳转 =====================
+// 创建规格选择弹窗
+function createVariationModal() {
+  const oldModal = document.getElementById('variation-modal');
+  if (oldModal) oldModal.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'variation-modal';
+  modal.style.cssText = `
+    position: fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);
+    display:flex;align-items:center;justify-content:center;z-index:9999;
+  `;
+  modal.innerHTML = `
+    <div style="background:#fff;width:90%;max-width:500px;border-radius:12px;padding:24px;position:relative;">
+      <button id="close-modal" style="position:absolute;top:12px;right:16px;border:none;background:transparent;font-size:22px;cursor:pointer;">×</button>
+      <h3 id="modal-title" style="margin:0 0 16px;"></h3>
+      <div id="attr-wrap" style="margin-bottom:20px;"></div>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <label>数量：</label>
+        <input type="number" id="qty-input" value="1" min="1" style="width:70px;padding:6px;">
+      </div>
+      <button id="confirm-add" style="margin-top:20px;width:100%;padding:12px;background:#4CAF50;color:#fff;border:none;border-radius:6px;cursor:pointer;">加入购物车</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // 关闭弹窗
+  document.getElementById('close-modal').onclick = () => modal.remove();
+  modal.onclick = (e) => { if (e.target.id === 'variation-modal') modal.remove(); };
+  return modal;
+}
+
+// 渲染变体规格选择器
+function renderVariationPopup(variations, productName, productId) {
+  const modal = createVariationModal();
+  modal.dataset.pid = productId;
+  document.getElementById('modal-title').innerText = productName;
+  const attrWrap = document.getElementById('attr-wrap');
+  let allAttrMap = {};
+
+  // 收集全部属性
+  variations.forEach(item => {
+    item.attributes.forEach(attr => {
+      if (!allAttrMap[attr.name]) allAttrMap[attr.name] = new Set();
+      allAttrMap[attr.name].add(attr.value);
+    });
+  });
+
+  // 生成下拉选择框
+  Object.keys(allAttrMap).forEach(attrKey => {
+    const wrap = document.createElement('div');
+    wrap.style.marginBottom = '12px';
+    let selectHtml = `<label>${attrKey}：</label><select data-key="${attrKey}" style="margin-left:8px;padding:6px;">`;
+    allAttrMap[attrKey].forEach(val => {
+      selectHtml += `<option value="${val}">${val}</option>`;
+    });
+    selectHtml += `</select>`;
+    wrap.innerHTML = selectHtml;
+    attrWrap.appendChild(wrap);
+  });
+
+  // 确认加购按钮事件
+  document.getElementById('confirm-add').onclick = async () => {
+    const selects = attrWrap.querySelectorAll('select');
+    const selectedAttrs = {};
+    selects.forEach(sel => selectedAttrs[sel.dataset.key] = sel.value);
+    const qty = Number(document.getElementById('qty-input').value);
+
+    // 匹配完整规格对应的变体ID
+    const targetVar = variations.find(v => {
+      return v.attributes.every(a => selectedAttrs[a.name] === a.value);
+    });
+
+    if (!targetVar) {
+      alert("请完整选择所有商品规格");
+      return;
+    }
+
+    const addResult = await addVariableToCart(productId, qty, targetVar.id, selectedAttrs);
+    if (addResult?.key) {
+      modal.remove();
+      alert("加入购物车成功");
+      getCartData();
+    } else {
+      alert("加购失败，请重新选择规格");
+    }
+  };
+}
+
 // 加载商品列表
 async function loadProducts() {
   const container = document.getElementById('product-container');
@@ -127,7 +216,7 @@ async function loadProducts() {
 
   container.innerHTML = '<div class="loading">⏳ 加载商品中...</div>';
 
-  // 先拉取Nonce
+  // 先拉取Nonce鉴权
   const nonceOk = await fetchWcNonce();
   if (!nonceOk) {
     container.innerHTML = '<p class="error-msg">鉴权令牌获取失败，请刷新页面</p>';
@@ -255,29 +344,37 @@ async function loadProducts() {
     html += '</div>';
     container.innerHTML = html;
 
-    // 点击事件（当前临时跳转，后续替换弹窗逻辑）
+    // 按钮点击事件：变体弹窗，无页面跳转
     document.querySelectorAll('.add-to-cart').forEach(btn => {
       btn.addEventListener('click', async function() {
         const pid = Number(this.dataset.productId);
         const pType = this.dataset.productType;
-        const slug = this.dataset.productSlug;
         const originText = this.textContent;
+        const productName = this.parentElement.querySelector('h3').innerText;
 
         this.textContent = "处理中...";
         this.disabled = true;
 
-        if(pType === 'simple'){
-          const res = await addToCart(pid,1);
-          if(res?.key){
-            window.location.href = CART_URL;
-          }else{
+        if (pType === 'simple') {
+          const res = await addToCart(pid, 1);
+          if (res?.key) {
+            alert("加入购物车成功");
+            getCartData();
+          } else {
             console.log(`商品${pid}加购失败`, res);
-            this.textContent = originText;
-            this.disabled = false;
           }
-        }else if(pType === 'variable'){
-          // 后续弹窗开发替换此处
-          window.location.href = `${WP_DOMAIN}/product/${slug}`;
+          this.textContent = originText;
+          this.disabled = false;
+        } else if (pType === 'variable') {
+          // 完全移除页面跳转，弹窗加载规格
+          const vars = await getProductVariations(pid);
+          this.textContent = originText;
+          this.disabled = false;
+          if (!vars || vars.length === 0) {
+            alert("该商品暂无可选规格");
+            return;
+          }
+          renderVariationPopup(vars, productName, pid);
         }
       });
     });
