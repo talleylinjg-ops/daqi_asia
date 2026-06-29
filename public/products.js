@@ -17,6 +17,7 @@ async function fetchWcNonce() {
     });
     const json = await res.json();
     WC_STORE_NONCE = json.nonce;
+    console.log("【Nonce调试打印】当前获取到的Nonce:", WC_STORE_NONCE);
     return true;
   } catch (err) {
     console.error("获取Nonce失败，接口请求异常", err);
@@ -48,6 +49,7 @@ async function getCartData() {
 // 简单商品加购（标准Store API）
 async function addToCart(productId, quantity = 1) {
   if (!WC_STORE_NONCE) await fetchWcNonce();
+  console.log("【加购调试】携带Nonce:", WC_STORE_NONCE);
   try {
     const res = await fetch(`${WP_API_BASE}/cart/items`, {
       method: "POST",
@@ -70,7 +72,7 @@ async function addToCart(productId, quantity = 1) {
   }
 }
 
-// 获取可变商品全部变体信息（弹窗专用）
+// 获取可变商品全部变体信息（弹窗专用，过滤库存&当前商品）
 async function getProductVariations(productId) {
   if (!WC_STORE_NONCE) await fetchWcNonce();
   try {
@@ -81,7 +83,9 @@ async function getProductVariations(productId) {
         "X-WC-Store-API-Nonce": WC_STORE_NONCE
       }
     });
-    return await res.json();
+    const variants = await res.json();
+    // 过滤：仅当前商品、有库存的变体
+    return variants.filter(item => item.product_id === productId && item.stock_quantity > 0);
   } catch (err) {
     console.error("拉取变体失败", err);
     return [];
@@ -117,7 +121,7 @@ async function addVariableToCart(productId, quantity = 1, variationId, attrObj) 
   }
 }
 
-// ===================== 弹窗工具函数 无跳转 =====================
+// ===================== 弹窗工具函数 无跳转 修复数据错乱 =====================
 // 创建规格选择弹窗
 function createVariationModal() {
   const oldModal = document.getElementById('variation-modal');
@@ -149,15 +153,19 @@ function createVariationModal() {
   return modal;
 }
 
-// 渲染变体规格选择器
+// 渲染变体规格选择器（清空旧DOM，隔离不同商品数据）
 function renderVariationPopup(variations, productName, productId) {
+  const oldModal = document.getElementById('variation-modal');
+  if (oldModal) oldModal.remove();
+
   const modal = createVariationModal();
   modal.dataset.pid = productId;
   document.getElementById('modal-title').innerText = productName;
   const attrWrap = document.getElementById('attr-wrap');
+  attrWrap.innerHTML = ""; // 清空上一个商品的规格，杜绝数据错乱
   let allAttrMap = {};
 
-  // 收集全部属性
+  // 收集当前商品专属属性
   variations.forEach(item => {
     item.attributes.forEach(attr => {
       if (!allAttrMap[attr.name]) allAttrMap[attr.name] = new Set();
@@ -185,7 +193,7 @@ function renderVariationPopup(variations, productName, productId) {
     selects.forEach(sel => selectedAttrs[sel.dataset.key] = sel.value);
     const qty = Number(document.getElementById('qty-input').value);
 
-    // 匹配完整规格对应的变体ID
+    // 精准匹配当前商品变体ID
     const targetVar = variations.find(v => {
       return v.attributes.every(a => selectedAttrs[a.name] === a.value);
     });
@@ -216,8 +224,9 @@ async function loadProducts() {
 
   container.innerHTML = '<div class="loading">⏳ 加载商品中...</div>';
 
-  // 先拉取Nonce鉴权
+  // 先拉取Nonce鉴权 + 打印调试
   const nonceOk = await fetchWcNonce();
+  console.log("【页面加载】Nonce获取状态：", nonceOk, "当前Nonce值：", WC_STORE_NONCE);
   if (!nonceOk) {
     container.innerHTML = '<p class="error-msg">鉴权令牌获取失败，请刷新页面</p>';
     return;
@@ -328,11 +337,13 @@ async function loadProducts() {
       const imgSrc = product.images && product.images.length > 0
         ? product.images[0].src.replace('http://', 'https://')
         : 'https://via.placeholder.com/300x300/eee/ccc?text=无图片';
+      // 价格undefined兜底修复
+      const priceDisplay = product.price ? `$${product.price}` : "$0.00";
       html += `
         <div class="product-card">
           <img src="${imgSrc}" alt="${product.name}" loading="lazy" />
           <h3>${product.name}</h3>
-          <div class="price">$${product.price}</div>
+          <div class="price">${priceDisplay}</div>
           <button class="add-to-cart" 
                   data-product-id="${product.id}" 
                   data-product-type="${product.type}"
