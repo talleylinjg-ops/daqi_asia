@@ -362,7 +362,7 @@ async function loadProducts() {
     html += '</div>';
     container.innerHTML = html;
 
-    // 按钮点击事件：仅variable商品请求变体，simple直接加购
+    // 按钮点击事件：增加商品真实类型二次校验，杜绝simple误请求变体接口404
     document.querySelectorAll('.add-to-cart').forEach(btn => {
       btn.addEventListener('click', async function() {
         const pid = Number(this.dataset.productId);
@@ -384,7 +384,28 @@ async function loadProducts() {
           this.textContent = originText;
           this.disabled = false;
         } else if (pType === 'variable') {
-          // 仅可变商品才请求变体接口
+          // 二次远程校验商品真实类型，防止前端data-type标记错误
+          const productDetailRes = await fetch(`${WP_API_BASE}/products/${pid}`, {
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+              "X-WC-Store-API-Nonce": WC_STORE_NONCE
+            }
+          });
+          const productInfo = await productDetailRes.json();
+          // 真实商品不是可变商品，直接走简单商品加购逻辑
+          if(productInfo.type !== "variable"){
+            const res = await addToCart(pid, 1);
+            if (res?.key) {
+              alert("加入购物车成功");
+              getCartData();
+            }
+            this.textContent = originText;
+            this.disabled = false;
+            return;
+          }
+
+          // 仅真实可变商品才请求变体接口
           const vars = await getProductVariations(pid);
           this.textContent = originText;
           this.disabled = false;
