@@ -214,7 +214,7 @@ function renderVariationPopup(variations, productName, productId) {
     if (addResult?.key) {
       modal.remove();
       alert("加入购物车成功");
-      getCartData();
+      setTimeout(() => getCartData(), 500);
     } else {
       alert("加购失败，请重新选择规格");
     }
@@ -377,7 +377,8 @@ async function loadProducts() {
           const res = await addToCart(pid, 1);
           if (res?.key) {
             alert("加入购物车成功");
-            getCartData();
+            // 延迟500ms刷新购物车，解决session同步延迟
+            setTimeout(() => getCartData(), 500);
           } else {
             console.log(`商品${pid}加购失败`, res);
           }
@@ -398,7 +399,7 @@ async function loadProducts() {
             const res = await addToCart(pid, 1);
             if (res?.key) {
               alert("加入购物车成功");
-              getCartData();
+              setTimeout(() => getCartData(), 500);
             }
             this.textContent = originText;
             this.disabled = false;
