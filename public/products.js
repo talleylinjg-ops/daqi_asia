@@ -72,7 +72,7 @@ async function addToCart(productId, quantity = 1) {
   }
 }
 
-// 获取可变商品全部变体信息（弹窗专用，过滤库存&当前商品）
+// 获取可变商品全部变体信息（弹窗专用，修复404&非数组报错）
 async function getProductVariations(productId) {
   if (!WC_STORE_NONCE) await fetchWcNonce();
   try {
@@ -83,7 +83,14 @@ async function getProductVariations(productId) {
         "X-WC-Store-API-Nonce": WC_STORE_NONCE
       }
     });
+    // 404/非200状态直接返回空数组
+    if (!res.ok) {
+      console.log(`商品${productId}无变体接口，状态码：`, res.status);
+      return [];
+    }
     const variants = await res.json();
+    // 校验返回值必须是数组再执行过滤
+    if (!Array.isArray(variants)) return [];
     // 过滤：仅当前商品、有库存的变体
     return variants.filter(item => item.product_id === productId && item.stock_quantity > 0);
   } catch (err) {
@@ -355,7 +362,7 @@ async function loadProducts() {
     html += '</div>';
     container.innerHTML = html;
 
-    // 按钮点击事件：变体弹窗，无页面跳转
+    // 按钮点击事件：仅variable商品请求变体，simple直接加购
     document.querySelectorAll('.add-to-cart').forEach(btn => {
       btn.addEventListener('click', async function() {
         const pid = Number(this.dataset.productId);
@@ -377,11 +384,12 @@ async function loadProducts() {
           this.textContent = originText;
           this.disabled = false;
         } else if (pType === 'variable') {
-          // 完全移除页面跳转，弹窗加载规格
+          // 仅可变商品才请求变体接口
           const vars = await getProductVariations(pid);
           this.textContent = originText;
           this.disabled = false;
-          if (!vars || vars.length === 0) {
+          // 容错：接口异常/空数据判断
+          if (!Array.isArray(vars) || vars.length === 0) {
             alert("该商品暂无可选规格");
             return;
           }
