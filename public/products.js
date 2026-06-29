@@ -1,20 +1,39 @@
-// WooCommerce v3 密钥（拉商品列表用，生产环境建议后端代理隐藏密钥）
-const consumerKey = 'ck_8e53e17efba521ed240e3993d522677a3a438862';
-const consumerSecret = 'cs_8cbc41d8d8451ecface53ba1c620d5093df9bc4d';
-// Store API 购物车接口地址
-const WP_API_BASE = "https://daqi.asia/wp-json/wc/store";
-// 站点购物车页面地址
-const CART_URL = "https://daqi.asia/cart";
+// 后端WP域名
+const WP_DOMAIN = "https://daqi.asia";
+const WP_API_BASE = `${WP_DOMAIN}/wp-json/wc/store`;
+const CART_URL = `${WP_DOMAIN}/cart`;
+// Nonce专用接口
+const NONCE_API = `${WP_DOMAIN}/wp-json/astro/v1/get-wc-nonce`;
 
-// ===================== 购物车相关函数 =====================
-// 获取购物车
+// 全局缓存Nonce
+let WC_STORE_NONCE = "";
+
+// 第一步：远程获取Store API Nonce
+async function fetchWcNonce() {
+  try {
+    const res = await fetch(NONCE_API, {
+      credentials: "include",
+      headers: { "Content-Type": "application/json" }
+    });
+    const json = await res.json();
+    WC_STORE_NONCE = json.nonce;
+    return true;
+  } catch (err) {
+    console.error("获取Nonce失败，接口请求异常", err);
+    return false;
+  }
+}
+
+// 获取购物车数据
 async function getCartData() {
+  if (!WC_STORE_NONCE) await fetchWcNonce();
   try {
     const res = await fetch(`${WP_API_BASE}/cart`, {
       method: "GET",
-      credentials: "same-origin",
+      credentials: "include",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-WC-Store-API-Nonce": WC_STORE_NONCE
       }
     });
     const data = await res.json();
@@ -26,14 +45,16 @@ async function getCartData() {
   }
 }
 
-// 简单商品加购
+// 简单商品加购（标准Store API）
 async function addToCart(productId, quantity = 1) {
+  if (!WC_STORE_NONCE) await fetchWcNonce();
   try {
     const res = await fetch(`${WP_API_BASE}/cart/items`, {
       method: "POST",
-      credentials: "same-origin",
+      credentials: "include",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-WC-Store-API-Nonce": WC_STORE_NONCE
       },
       body: JSON.stringify({
         id: productId,
@@ -49,20 +70,42 @@ async function addToCart(productId, quantity = 1) {
   }
 }
 
-// 变体商品专用函数
+// 获取可变商品全部变体信息（弹窗专用）
+async function getProductVariations(productId) {
+  if (!WC_STORE_NONCE) await fetchWcNonce();
+  try {
+    const res = await fetch(`${WP_API_BASE}/products/${productId}/variations`, {
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "X-WC-Store-API-Nonce": WC_STORE_NONCE
+      }
+    });
+    return await res.json();
+  } catch (err) {
+    console.error("拉取变体失败", err);
+    return [];
+  }
+}
+
+// 变体商品专用加购函数
 async function addVariableToCart(productId, quantity = 1, variationId, attrObj) {
+  if (!WC_STORE_NONCE) await fetchWcNonce();
   try {
     const res = await fetch(`${WP_API_BASE}/cart/items`, {
       method: "POST",
-      credentials: "same-origin",
+      credentials: "include",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-WC-Store-API-Nonce": WC_STORE_NONCE
       },
       body: JSON.stringify({
         id: productId,
         quantity: quantity,
-        variation: variationId,
-        attributes: attrObj
+        variation: {
+          id: variationId,
+          attributes: attrObj
+        }
       })
     });
     const data = await res.json();
@@ -74,7 +117,7 @@ async function addVariableToCart(productId, quantity = 1, variationId, attrObj) 
   }
 }
 
-// ===================== 原有加载商品逻辑 =====================
+// 加载商品列表
 async function loadProducts() {
   const container = document.getElementById('product-container');
   if (!container) {
@@ -84,13 +127,19 @@ async function loadProducts() {
 
   container.innerHTML = '<div class="loading">⏳ 加载商品中...</div>';
 
+  // 先拉取Nonce
+  const nonceOk = await fetchWcNonce();
+  if (!nonceOk) {
+    container.innerHTML = '<p class="error-msg">鉴权令牌获取失败，请刷新页面</p>';
+    return;
+  }
+
   try {
-    const credentials = btoa(`${consumerKey}:${consumerSecret}`);
-    const siteUrl = 'https://daqi.asia';
-    const response = await fetch(`${siteUrl}/wp-json/wc/v3/products?per_page=20`, {
+    const response = await fetch(`${WP_API_BASE}/products?per_page=20`, {
+      credentials: "include",
       headers: {
-        'Authorization': `Basic ${credentials}`,
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        "Content-Type": "application/json",
+        "X-WC-Store-API-Nonce": WC_STORE_NONCE
       }
     });
 
@@ -188,7 +237,7 @@ async function loadProducts() {
 
     products.forEach(product => {
       const imgSrc = product.images && product.images.length > 0
-        ? product.images[0].src
+        ? product.images[0].src.replace('http://', 'https://')
         : 'https://via.placeholder.com/300x300/eee/ccc?text=无图片';
       html += `
         <div class="product-card">
@@ -206,7 +255,7 @@ async function loadProducts() {
     html += '</div>';
     container.innerHTML = html;
 
-    // 重构点击逻辑：彻底移除alert，直接页面跳转
+    // 点击事件（当前临时跳转，后续替换弹窗逻辑）
     document.querySelectorAll('.add-to-cart').forEach(btn => {
       btn.addEventListener('click', async function() {
         const pid = Number(this.dataset.productId);
@@ -214,24 +263,21 @@ async function loadProducts() {
         const slug = this.dataset.productSlug;
         const originText = this.textContent;
 
-        // 防止重复点击
         this.textContent = "处理中...";
         this.disabled = true;
 
         if(pType === 'simple'){
           const res = await addToCart(pid,1);
           if(res?.key){
-            // 加购成功，直接跳购物车
             window.location.href = CART_URL;
           }else{
-            // 失败仅控制台输出，无弹窗
             console.log(`商品${pid}加购失败`, res);
             this.textContent = originText;
             this.disabled = false;
           }
         }else if(pType === 'variable'){
-          // 变体商品跳转详情页选择规格
-          window.location.href = `https://daqi.asia/product/${slug}`;
+          // 后续弹窗开发替换此处
+          window.location.href = `${WP_DOMAIN}/product/${slug}`;
         }
       });
     });
