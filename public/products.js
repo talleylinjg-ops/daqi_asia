@@ -2,9 +2,7 @@
 
 async function addToCart(pid, qty = 1, extra = {}) {
     let payload = { id: pid, quantity: qty, ...extra };
-    // 先拉取变体列表，判断是否为可变商品
     const variations = await getProductVariations(pid);
-    // 存在变体，默认选第一个变体加入购物车
     if (Array.isArray(variations) && variations.length > 0) {
         payload.variation = variations[0].id;
     }
@@ -25,7 +23,7 @@ async function addToCart(pid, qty = 1, extra = {}) {
         }
         alert("Add to cart success!");
         return addResult;
-    } catch (err)
+    } catch (err) {
         console.error("加购请求失败 详细原因：", err);
         alert("Add to cart failed, please retry\nDetail: " + err.message);
         return null;
