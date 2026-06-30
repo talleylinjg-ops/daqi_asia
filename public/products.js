@@ -14,7 +14,6 @@ let globalGoodsList = [];
     document.body.prepend(goodsWrap);
 })();
 
-// 调用自建中转接口获取格式化后的变体
 async function getVariants(pid) {
     try {
         const res = await fetch(`https://daqi.asia/proxy-variants.php?pid=${pid}`, {
@@ -51,20 +50,25 @@ async function loadAllGoods(){
         htmlStr += `</div>`;
         boxDom.innerHTML = htmlStr;
 
-        // 绑定点击事件
         document.querySelectorAll(".add-cart-btn").forEach(btn => {
             btn.addEventListener("click", async function() {
                 const pid = Number(this.dataset.pid);
                 const type = this.dataset.type;
-                const submitBody = { id: pid, quantity: 1 };
+                let submitBody;
 
                 if (type === "variable") {
                     const varList = await getVariants(pid);
                     if (varList.length > 0) {
-                        const firstVar = varList[0];
-                        submitBody.variation = firstVar.id;
-                        submitBody.attributes = firstVar.attributes;
+                        // 核心修复：只传 variation，不传 id、不传 attributes
+                        submitBody = {
+                            variation: varList[0].id,
+                            quantity: 1
+                        };
+                    } else {
+                        submitBody = { id: pid, quantity: 1 };
                     }
+                } else {
+                    submitBody = { id: pid, quantity: 1 };
                 }
                 console.log("最终提交完整请求体", submitBody);
 
