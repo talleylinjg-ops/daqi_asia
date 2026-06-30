@@ -2,10 +2,10 @@
 
 window.addToCart = async function(pid, qty = 1, type = "simple", slug = "") {
     let reqData = { id: pid, quantity: qty };
+    let getVarSuccess = false;
 
     if (type === "variable" && slug) {
         try {
-            // 携带credentials跨域Cookie，匹配后端Access-Control-Allow-Credentials
             const res = await fetch(`https://daqi.asia/wp-json/wc/store/products/${slug}/variations`, {
                 credentials: "include",
                 signal: AbortSignal.timeout(5000)
@@ -16,13 +16,19 @@ window.addToCart = async function(pid, qty = 1, type = "simple", slug = "") {
                     const firstVar = list[0];
                     reqData.variation = firstVar.id;
                     reqData.attributes = firstVar.attributes;
+                    getVarSuccess = true;
                 }
             }
         } catch (err) {
-            // 变体接口跨域/500失败时，直接删除variation字段降级提交
-            delete reqData.variation;
-            delete reqData.attributes;
+            // 跨域/500/超时全部判定为拉取变体失败
+            getVarSuccess = false;
         }
+    }
+
+    // 拉取变体失败，彻底删除variation、attributes字段，按简单商品提交
+    if (!getVarSuccess) {
+        delete reqData.variation;
+        delete reqData.attributes;
     }
 
     try {
