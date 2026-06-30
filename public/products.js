@@ -1,30 +1,40 @@
 "use strict";
+let validNonce = null;
 
-// 从wp cookie解析生成store api nonce
-function getWooNonce() {
-    let cookie = document.cookie.split('; ').find(row => row.startsWith('woocommerce_session_'));
-    if (!cookie) return "";
-    const sessionVal = cookie.split('=')[1];
-    // Woo Store API 标准nonce生成规则
-    return btoa(`wc_store_${sessionVal.slice(-12)}`);
+async function fetchValidNonce() {
+    try {
+        const res = await fetch("https://daqi.asia/wp-json/custom/v1/get-nonce", {
+            signal: AbortSignal.timeout(6000)
+        });
+        const data = await res.json();
+        validNonce = data.nonce;
+    } catch (err) {
+        console.error("获取后台验证串失败", err);
+    }
 }
 
 async function addToCart(pid, qty = 1, extra = {}) {
-    const nonce = getWooNonce();
+    if (!validNonce) {
+        await fetchValidNonce();
+    }
+    if (!validNonce) {
+        alert("页面验证参数获取失败，请刷新页面");
+        return null;
+    }
     const payload = { id: pid, quantity: qty, ...extra };
     try {
         const res = await fetch("https://daqi.asia/wp-json/wc/store/cart/items", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-WC-Store-API-Nonce": nonce
+                "X-WC-Store-API-Nonce": validNonce
             },
             body: JSON.stringify(payload),
             signal: AbortSignal.timeout(8000)
         });
         const addResult = await res.json();
         if (!res.ok) {
-            throw new Error(addResult.message || "Add cart api error");
+            throw new Error(addResult.message || "接口异常");
         }
         alert("Add to cart success!");
         return addResult;
@@ -36,12 +46,11 @@ async function addToCart(pid, qty = 1, extra = {}) {
 }
 
 async function getProductVariations(pid) {
-    const nonce = getWooNonce();
+    if (!validNonce) await fetchValidNonce();
+    if (!validNonce) return [];
     try {
         const res = await fetch(`https://daqi.asia/wp-json/wc/store/products/${pid}/variations`, {
-            headers: {
-                "X-WC-Store-API-Nonce": nonce
-            },
+            headers: { "X-WC-Store-API-Nonce": validNonce },
             signal: AbortSignal.timeout(8000)
         });
         const data = await res.json();
@@ -71,20 +80,19 @@ async function getProductVariations(pid) {
         d.style.padding="15px";
         document.body.prepend(d);
     }
+    fetchValidNonce();
 })();
 
 window.addToCart = addToCart;
 window.getProductVariations = getProductVariations;
 
 window.loadGoods = async function(){
-    const nonce = getWooNonce();
+    if (!validNonce) await fetchValidNonce();
     const t=document.querySelector(".loading-tip");
     const b=document.querySelector(".goods-box");
     try{
         const r=await fetch("https://daqi.asia/wp-json/wc/store/products",{
-            headers: {
-                "X-WC-Store-API-Nonce": nonce
-            },
+            headers: { "X-WC-Store-API-Nonce": validNonce },
             signal: AbortSignal.timeout(10000)
         });
         const l=await r.json();
