@@ -1,6 +1,20 @@
 "use strict";
 
 (function initLayout(){
+    // 顶部查看购物车按钮
+    const cartViewBtn = document.createElement("button");
+    cartViewBtn.innerText = "View Cart";
+    cartViewBtn.style.position = "fixed";
+    cartViewBtn.style.top = "10px";
+    cartViewBtn.style.right = "10px";
+    cartViewBtn.style.padding = "6px 12px";
+    cartViewBtn.style.background = "#333";
+    cartViewBtn.style.color = "#fff";
+    cartViewBtn.style.border = "none";
+    cartViewBtn.style.borderRadius = "4px";
+    cartViewBtn.onclick = getCurrentCart;
+    document.body.appendChild(cartViewBtn);
+
     const loadingTip = document.createElement("p");
     loadingTip.className = "loading-tip";
     loadingTip.innerText = "⏳ Loading products...";
@@ -15,7 +29,21 @@
     document.body.prepend(goodsWrap);
 })();
 
-// 获取可变商品标准属性数组
+// 读取当前浏览器真实购物车
+async function getCurrentCart() {
+    try {
+        const res = await fetch("https://daqi.asia/wp-json/wc/store/cart", {
+            credentials: "include"
+        });
+        const cart = await res.json();
+        console.log("【本机浏览器购物车完整数据】", cart);
+        alert("打开控制台F12查看购物车打印内容");
+    } catch (e) {
+        console.error("读取购物车失败", e);
+    }
+}
+
+// 获取可变商品标准variation数组
 async function getVariationPayload(productId) {
     const ck = "ck_215cd99f4996b2dd6a503ad2a8ff7a7511c0b7fe";
     const cs = "cs_9424255ada2191c49b5cd93adeac27880e3e071d";
@@ -25,74 +53,49 @@ async function getVariationPayload(productId) {
         });
         const variants = await res.json();
         if (!Array.isArray(variants) || variants.length === 0) return null;
-        const firstVar = variants[0];
-        const output = [];
-        firstVar.attributes.forEach(attrItem => {
-            output.push({
-                attribute: attrItem.slug,
-                value: attrItem.option
+        const first = variants[0];
+        const arr = [];
+        first.attributes.forEach(attr => {
+            arr.push({
+                attribute: attr.slug,
+                value: attr.option
             });
         });
-        return output;
-    } catch (err) {
-        console.error("获取变体失败", err);
+        return arr;
+    } catch (e) {
         return null;
     }
 }
 
-// 加入购物车：浏览器原生请求，共用本机购物车Cookie
-window.addToCart = async function(pid, productType) {
-    const payload = {
-        id: pid,
-        quantity: 1
-    };
-    // 可变商品拼接标准variation
-    if (productType === "variable") {
-        const varPayload = await getVariationPayload(pid);
-        if (varPayload) payload.variation = varPayload;
+// 加入购物车
+window.addToCart = async function(pid, type) {
+    const payload = { id: pid, quantity: 1 };
+    if (type === "variable") {
+        const varArr = await getVariationPayload(pid);
+        if (varArr) payload.variation = varArr;
     }
-    console.log("提交购物车完整JSON", payload);
+    console.log("最终提交体", payload);
 
     try {
-        // 关键：credentials: "include" 带上当前浏览器全部购物车Cookie
-        const cartRes = await fetch("https://daqi.asia/wp-json/wc/store/cart/items", {
+        const res = await fetch("https://daqi.asia/wp-json/wc/store/cart/items", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             credentials: "include",
             body: JSON.stringify(payload)
         });
-        const result = await cartRes.json();
-        console.log("购物车接口返回完整数据", result);
-
-        if (cartRes.ok) {
-            alert("Add to cart success! Please open cart page to view items");
-            // 自动拉取当前购物车，控制台打印已加入的商品，验证是否存入本地会话
-            refreshLocalCart();
+        const ret = await res.json();
+        if (res.ok) {
+            alert("Add success, click View Cart to check");
+            getCurrentCart();
         } else {
-            alert("Add failed, check console log");
+            console.log("失败详情", ret);
+            alert("Add failed");
         }
-    } catch (netErr) {
-        console.error("网络请求异常", netErr);
+    } catch (e) {
         alert("Network error");
     }
 };
 
-// 读取浏览器当前真实购物车，控制台输出所有商品，用来验证是否添加成功
-async function refreshLocalCart() {
-    try {
-        const cartData = await fetch("https://daqi.asia/wp-json/wc/store/cart", {
-            credentials: "include"
-        });
-        const cartJson = await cartData.json();
-        console.log("=== 当前浏览器本地购物车完整内容 ===", cartJson);
-    } catch (e) {
-        console.error("读取购物车失败", e);
-    }
-}
-
-// 加载商品列表
 async function loadAllGoods(){
     const tipDom = document.querySelector(".loading-tip");
     const boxDom = document.querySelector(".goods-box");
@@ -100,7 +103,6 @@ async function loadAllGoods(){
         const listRes = await fetch("https://daqi.asia/wp-json/wc/store/products", {
             credentials: "include"
         });
-        if (!listRes.ok) throw new Error("Load product failed");
         const goodsList = await listRes.json();
         tipDom.style.display = "none";
 
@@ -120,7 +122,6 @@ async function loadAllGoods(){
         boxDom.innerHTML = htmlStr;
     } catch (loadErr) {
         if (tipDom) tipDom.innerText = "Load product failed, refresh page";
-        console.error(loadErr);
     }
 }
 window.addEventListener("DOMContentLoaded", loadAllGoods);
