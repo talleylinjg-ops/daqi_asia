@@ -1,6 +1,5 @@
 "use strict";
 
-// 加购 - 移除所有nonce相关逻辑
 async function addToCart(pid, qty = 1, extra = {}) {
     const payload = { id: pid, quantity: qty, ...extra };
     try {
@@ -25,7 +24,6 @@ async function addToCart(pid, qty = 1, extra = {}) {
     }
 }
 
-// 获取商品变体
 async function getProductVariations(pid) {
     try {
         const res = await fetch(`https://daqi.asia/wp-json/wc/store/products/${pid}/variations`, {
@@ -43,7 +41,6 @@ async function getProductVariations(pid) {
     }
 }
 
-// 初始化加载容器
 (function initDom(){
     if(!document.querySelector(".loading-tip")){
         const p=document.createElement("p");
@@ -61,11 +58,9 @@ async function getProductVariations(pid) {
     }
 })();
 
-// 挂载全局按钮调用函数
 window.addToCart = addToCart;
 window.getProductVariations = getProductVariations;
 
-// 加载商品列表（移除nonce请求头）
 window.loadGoods = async function(){
     const t=document.querySelector(".loading-tip");
     const b=document.querySelector(".goods-box");
@@ -94,5 +89,4 @@ window.loadGoods = async function(){
     }
 };
 
-// 自动加载商品
 loadGoods();
