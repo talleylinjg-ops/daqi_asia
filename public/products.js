@@ -1,17 +1,17 @@
-// 【已彻底删除astro/v1接口请求，纯全局变量读取Nonce】
+// 废弃astro自定义nonce接口，读取页面全局window.wcStoreNonce
 function getWcNonce() {
     const nonce = window.wcStoreNonce ?? "";
     console.log("【Nonce调试打印】当前获取到的Nonce: ", nonce);
     return nonce;
 }
 
-// 页面初始化打印nonce日志（对应236行打印）
+// 页面加载打印nonce状态日志
 (function initNonceLog() {
     const val = getWcNonce();
     console.log("【页面加载】Nonce获取状态：", !!val, " 当前Nonce值：", val);
 })();
 
-// 加入购物车
+// 加购函数
 async function addToCart(productId, quantity = 1, variationData = {}) {
     const nonce = getWcNonce();
     console.log("【加购调试】携带Nonce: ", nonce);
@@ -35,7 +35,7 @@ async function addToCart(productId, quantity = 1, variationData = {}) {
         const addResult = await res.json();
         console.log("加购返回结果：", addResult);
 
-        // 拉取最新购物车
+        // 刷新购物车数据
         const cartResp = await fetch("/wp-json/wc/store/cart", {
             headers: {
                 "X-WC-Store-API-Nonce": nonce
@@ -51,7 +51,7 @@ async function addToCart(productId, quantity = 1, variationData = {}) {
     }
 }
 
-// 获取商品变体列表
+// 获取商品变体
 async function getProductVariations(productId) {
     const nonce = getWcNonce();
     try {
@@ -72,8 +72,3 @@ async function getProductVariations(productId) {
         return [];
     }
 }
-
-// ==================== 下方是你原有页面业务调用代码自行保留 ====================
-// 示例调用：
-// await addToCart(17375, 1);
-// const variants = await getProductVariations(17381);
