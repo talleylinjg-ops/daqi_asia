@@ -1,11 +1,12 @@
 "use strict";
 
-// 全局添加购物车方法
 window.addToCart = async function(pid, qty = 1, type = "simple") {
     let reqData = { id: pid, quantity: qty };
     if (type === "variable") {
         try {
-            const res = await fetch(`https://daqi.asia/wp-json/wc/store/products/${pid}/variations`);
+            const res = await fetch(`https://daqi.asia/wp-json/wc/store/products/${pid}/variations`, {
+                credentials: "include"
+            });
             if (res.ok) {
                 const list = await res.json();
                 if (list.length > 0) reqData.variation = list[0].id;
@@ -16,19 +17,20 @@ window.addToCart = async function(pid, qty = 1, type = "simple") {
         const resp = await fetch("https://daqi.asia/wp-json/wc/store/cart/items", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
+            credentials: "include",
             body: JSON.stringify(reqData)
         });
         if (resp.ok) {
             alert("Add to cart success!");
         } else {
             alert("Add to cart failed, please retry");
+            console.log("加购失败返回码：", resp.status, await resp.json());
         }
     } catch (err) {
         alert("Add to cart failed, please retry");
     }
 };
 
-// 初始化加载容器
 (function initBox(){
     const loadingText = document.createElement("p");
     loadingText.className = "loading-tip";
@@ -43,12 +45,13 @@ window.addToCart = async function(pid, qty = 1, type = "simple") {
     document.body.prepend(goodsWrap);
 })();
 
-// 加载商品列表主逻辑
 async function loadGoods(){
     const tip = document.querySelector(".loading-tip");
     const box = document.querySelector(".goods-box");
     try {
-        const res = await fetch("https://daqi.asia/wp-json/wc/store/products");
+        const res = await fetch("https://daqi.asia/wp-json/wc/store/products", {
+            credentials: "include"
+        });
         if (!res.ok) throw new Error("接口异常");
         const goodsList = await res.json();
         tip.style.display = "none";
@@ -69,5 +72,4 @@ async function loadGoods(){
     }
 }
 
-// 执行加载
 loadGoods();
