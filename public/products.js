@@ -1,9 +1,5 @@
 "use strict";
 let globalGoodsList = [];
-const WC_API_KEYS = {
-    consumer_key: "ck_215cd99f4996b2dd6a503ad2a8ff7a7511c0b7fe",
-    consumer_secret: "cs_9424255ada2191c49b5cd93adeac27880e3e071d"
-};
 
 (function initLayout(){
     const loadingTip = document.createElement("p");
@@ -18,28 +14,17 @@ const WC_API_KEYS = {
     document.body.prepend(goodsWrap);
 })();
 
-async function fetchVariants(productId) {
-    const queryParams = new URLSearchParams({
-        consumer_key: WC_API_KEYS.consumer_key,
-        consumer_secret: WC_API_KEYS.consumer_secret
-    });
-    const url = `https://daqi.asia/wp-json/wc/v3/products/${productId}/variations?${queryParams.toString()}`;
+// 调用自建中转接口获取格式化后的变体
+async function getVariants(pid) {
     try {
-        const res = await fetch(url, { credentials: "include" });
+        const res = await fetch(`https://daqi.asia/proxy-variants.php?pid=${pid}`, {
+            credentials: "include"
+        });
         if (!res.ok) return [];
         return await res.json();
     } catch (e) {
         return [];
     }
-}
-
-// 核心修复：把变体attributes数组转为Store API要求的键值对象
-function formatAttrArrayToObj(attrArr) {
-    const attrObj = {};
-    attrArr.forEach(item => {
-        attrObj[item.name] = item.option;
-    });
-    return attrObj;
 }
 
 async function loadAllGoods(){
@@ -66,6 +51,7 @@ async function loadAllGoods(){
         htmlStr += `</div>`;
         boxDom.innerHTML = htmlStr;
 
+        // 绑定点击事件
         document.querySelectorAll(".add-cart-btn").forEach(btn => {
             btn.addEventListener("click", async function() {
                 const pid = Number(this.dataset.pid);
@@ -73,12 +59,11 @@ async function loadAllGoods(){
                 const submitBody = { id: pid, quantity: 1 };
 
                 if (type === "variable") {
-                    const varList = await fetchVariants(pid);
+                    const varList = await getVariants(pid);
                     if (varList.length > 0) {
                         const firstVar = varList[0];
                         submitBody.variation = firstVar.id;
-                        // 数组转对象，匹配Store API格式要求
-                        submitBody.attributes = formatAttrArrayToObj(firstVar.attributes);
+                        submitBody.attributes = firstVar.attributes;
                     }
                 }
                 console.log("最终提交完整请求体", submitBody);
