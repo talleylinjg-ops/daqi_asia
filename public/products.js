@@ -362,61 +362,47 @@ async function loadProducts() {
     html += '</div>';
     container.innerHTML = html;
 
-    // 按钮点击事件：增加商品真实类型二次校验，杜绝simple误请求变体接口404
+    // 按钮点击：优先远程校验真实商品类型，杜绝无效/variations 404请求
     document.querySelectorAll('.add-to-cart').forEach(btn => {
       btn.addEventListener('click', async function() {
         const pid = Number(this.dataset.productId);
-        const pType = this.dataset.productType;
         const originText = this.textContent;
         const productName = this.parentElement.querySelector('h3').innerText;
 
         this.textContent = "处理中...";
         this.disabled = true;
 
-        if (pType === 'simple') {
+        // 第一步：直接远程获取商品真实类型，不再依赖data标记
+        const productDetailRes = await fetch(`${WP_API_BASE}/products/${pid}`, {
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "X-WC-Store-API-Nonce": WC_STORE_NONCE
+          }
+        });
+        const productInfo = await productDetailRes.json();
+
+        if(productInfo.type !== "variable"){
+          // 真实为简单商品，直接加购，不请求变体接口
           const res = await addToCart(pid, 1);
           if (res?.key) {
             alert("加入购物车成功");
-            // 延迟500ms刷新购物车，解决session同步延迟
             setTimeout(() => getCartData(), 500);
-          } else {
-            console.log(`商品${pid}加购失败`, res);
           }
           this.textContent = originText;
           this.disabled = false;
-        } else if (pType === 'variable') {
-          // 二次远程校验商品真实类型，防止前端data-type标记错误
-          const productDetailRes = await fetch(`${WP_API_BASE}/products/${pid}`, {
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-              "X-WC-Store-API-Nonce": WC_STORE_NONCE
-            }
-          });
-          const productInfo = await productDetailRes.json();
-          // 真实商品不是可变商品，直接走简单商品加购逻辑
-          if(productInfo.type !== "variable"){
-            const res = await addToCart(pid, 1);
-            if (res?.key) {
-              alert("加入购物车成功");
-              setTimeout(() => getCartData(), 500);
-            }
-            this.textContent = originText;
-            this.disabled = false;
-            return;
-          }
-
-          // 仅真实可变商品才请求变体接口
-          const vars = await getProductVariations(pid);
-          this.textContent = originText;
-          this.disabled = false;
-          // 容错：接口异常/空数据判断
-          if (!Array.isArray(vars) || vars.length === 0) {
-            alert("该商品暂无可选规格");
-            return;
-          }
-          renderVariationPopup(vars, productName, pid);
+          return;
         }
+
+        // 仅真实可变商品才拉取变体弹窗
+        const vars = await getProductVariations(pid);
+        this.textContent = originText;
+        this.disabled = false;
+        if (!Array.isArray(vars) || vars.length === 0) {
+          alert("该商品暂无可选规格");
+          return;
+        }
+        renderVariationPopup(vars, productName, pid);
       });
     });
 
