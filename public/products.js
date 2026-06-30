@@ -1,12 +1,23 @@
 "use strict";
 
+// 从wp cookie解析生成store api nonce
+function getWooNonce() {
+    let cookie = document.cookie.split('; ').find(row => row.startsWith('woocommerce_session_'));
+    if (!cookie) return "";
+    const sessionVal = cookie.split('=')[1];
+    // Woo Store API 标准nonce生成规则
+    return btoa(`wc_store_${sessionVal.slice(-12)}`);
+}
+
 async function addToCart(pid, qty = 1, extra = {}) {
+    const nonce = getWooNonce();
     const payload = { id: pid, quantity: qty, ...extra };
     try {
         const res = await fetch("https://daqi.asia/wp-json/wc/store/cart/items", {
             method: "POST",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "X-WC-Store-API-Nonce": nonce
             },
             body: JSON.stringify(payload),
             signal: AbortSignal.timeout(8000)
@@ -25,8 +36,12 @@ async function addToCart(pid, qty = 1, extra = {}) {
 }
 
 async function getProductVariations(pid) {
+    const nonce = getWooNonce();
     try {
         const res = await fetch(`https://daqi.asia/wp-json/wc/store/products/${pid}/variations`, {
+            headers: {
+                "X-WC-Store-API-Nonce": nonce
+            },
             signal: AbortSignal.timeout(8000)
         });
         const data = await res.json();
@@ -62,10 +77,14 @@ window.addToCart = addToCart;
 window.getProductVariations = getProductVariations;
 
 window.loadGoods = async function(){
+    const nonce = getWooNonce();
     const t=document.querySelector(".loading-tip");
     const b=document.querySelector(".goods-box");
     try{
         const r=await fetch("https://daqi.asia/wp-json/wc/store/products",{
+            headers: {
+                "X-WC-Store-API-Nonce": nonce
+            },
             signal: AbortSignal.timeout(10000)
         });
         const l=await r.json();
