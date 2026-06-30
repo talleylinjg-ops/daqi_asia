@@ -1,82 +1,73 @@
 "use strict";
 
-async function addToCart(pid, qty = 1, productType = "simple", extra = {}) {
-    let payload = { id: pid, quantity: qty, ...extra };
-
-    if (productType === "variable") {
-        let variations = [];
+// 全局添加购物车方法
+window.addToCart = async function(pid, qty = 1, type = "simple") {
+    let reqData = { id: pid, quantity: qty };
+    if (type === "variable") {
         try {
-            const res = await fetch("https://daqi.asia/wp-json/wc/store/products/" + pid + "/variations", {
-                signal: AbortSignal.timeout(6000)
-            });
-            if (res.ok) variations = await res.json();
-        } catch (err) {}
-        if (variations.length > 0) payload.variation = variations[0].id;
+            const res = await fetch(`https://daqi.asia/wp-json/wc/store/products/${pid}/variations`);
+            if (res.ok) {
+                const list = await res.json();
+                if (list.length > 0) reqData.variation = list[0].id;
+            }
+        } catch (e) {}
     }
-
     try {
-        const res = await fetch("https://daqi.asia/wp-json/wc/store/cart/items", {
+        const resp = await fetch("https://daqi.asia/wp-json/wc/store/cart/items", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-            signal: AbortSignal.timeout(8000)
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(reqData)
         });
-        const addResult = await res.json();
-        if (!res.ok) throw new Error("fail");
-        alert("Add to cart success!");
-        return addResult;
+        if (resp.ok) {
+            alert("Add to cart success!");
+        } else {
+            alert("Add to cart failed, please retry");
+        }
     } catch (err) {
         alert("Add to cart failed, please retry");
-        return null;
-    }
-}
-
-(function initDom() {
-    if (!document.querySelector(".loading-tip")) {
-        const p = document.createElement("p");
-        p.className = "loading-tip";
-        p.textContent = "⏳ 加载商品中...";
-        document.body.prepend(p);
-    }
-    if (!document.querySelector(".goods-box")) {
-        const d = document.createElement("div");
-        d.className = "goods-box";
-        d.style.maxWidth = "1200px";
-        d.style.margin = "0 auto";
-        d.style.padding = "15px";
-        document.body.prepend(d);
-    }
-})();
-
-window.addToCart = addToCart;
-
-window.loadGoods = async function () {
-    const t = document.querySelector(".loading-tip");
-    const b = document.querySelector(".goods-box");
-    try {
-        const r = await fetch("https://daqi.asia/wp-json/wc/store/products", {
-            signal: AbortSignal.timeout(8000)
-        });
-        if (!r.ok) throw new Error("api error");
-        const l = await r.json();
-        if (!t || !b) return;
-        t.style.display = "none";
-
-        let h = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">';
-        l.forEach(function (i) {
-            const img = i.images && i.images[0] ? i.images[0].thumbnail : "";
-            h += '<div style="border:1px solid #eee;padding:10px;border-radius:6px;">';
-            if (img) h += '<img src="' + img + '" style="width:100%;height:200px;object-fit:cover;">';
-            h += '<h4>' + i.name + '</h4>';
-            h += '<div style="color:#c00;">' + i.prices.price_html + '</div>';
-            h += '<button onclick="addToCart(' + i.id + ',1,\'' + i.type + '\')" style="width:100%;margin-top:8px;padding:6px;background:#007bff;color:#fff;border:none;border-radius:4px;">Add To Cart</button>';
-            h += '</div>';
-        });
-        h += '</div>';
-        b.innerHTML = h;
-    } catch (e) {
-        if (t) t.textContent = "商品加载失败，请刷新页面";
     }
 };
 
+// 初始化加载容器
+(function initBox(){
+    const loadingText = document.createElement("p");
+    loadingText.className = "loading-tip";
+    loadingText.innerText = "⏳ 加载商品中...";
+    document.body.prepend(loadingText);
+
+    const goodsWrap = document.createElement("div");
+    goodsWrap.className = "goods-box";
+    goodsWrap.style.maxWidth = "1200px";
+    goodsWrap.style.margin = "0 auto";
+    goodsWrap.style.padding = "15px";
+    document.body.prepend(goodsWrap);
+})();
+
+// 加载商品列表主逻辑
+async function loadGoods(){
+    const tip = document.querySelector(".loading-tip");
+    const box = document.querySelector(".goods-box");
+    try {
+        const res = await fetch("https://daqi.asia/wp-json/wc/store/products");
+        if (!res.ok) throw new Error("接口异常");
+        const goodsList = await res.json();
+        tip.style.display = "none";
+        let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">';
+        goodsList.forEach(item => {
+            const imgUrl = item.images?.[0]?.thumbnail || "";
+            html += `<div style="border:1px solid #eee;padding:10px;border-radius:6px;">`;
+            if(imgUrl) html += `<img src="${imgUrl}" style="width:100%;height:200px;object-fit:cover;">`;
+            html += `<h4>${item.name}</h4>`;
+            html += `<div style="color:#c00;">${item.prices.price_html}</div>`;
+            html += `<button onclick="addToCart(${item.id},1,'${item.type}')" style="width:100%;margin-top:8px;padding:6px;background:#007bff;color:#fff;border:none;border-radius:4px;">Add To Cart</button>`;
+            html += `</div>`;
+        });
+        html += `</div>`;
+        box.innerHTML = html;
+    } catch (error) {
+        if(tip) tip.innerText = "商品加载失败，请刷新页面";
+    }
+}
+
+// 执行加载
 loadGoods();
