@@ -15,44 +15,47 @@
     document.body.prepend(goodsWrap);
 })();
 
-// 拉取单个商品变体属性
-async function getVariantAttr(pid) {
+// 获取可变商品标准属性数组
+async function getVariationPayload(productId) {
     const ck = "ck_215cd99f4996b2dd6a503ad2a8ff7a7511c0b7fe";
     const cs = "cs_9424255ada2191c49b5cd93adeac27880e3e071d";
     try {
-        const res = await fetch(`https://daqi.asia/wp-json/wc/v3/products/${pid}/variations?consumer_key=${ck}&consumer_secret=${cs}`, {
+        const res = await fetch(`https://daqi.asia/wp-json/wc/v3/products/${productId}/variations?consumer_key=${ck}&consumer_secret=${cs}`, {
             credentials: "include"
         });
-        const list = await res.json();
-        if(!list || list.length === 0) return null;
-        const first = list[0];
-        const varArr = [];
-        first.attributes.forEach(item=>{
-            varArr.push({
-                attribute: item.slug,
-                value: item.option
+        const variants = await res.json();
+        if (!Array.isArray(variants) || variants.length === 0) return null;
+        const firstVar = variants[0];
+        const output = [];
+        firstVar.attributes.forEach(attrItem => {
+            output.push({
+                attribute: attrItem.slug,
+                value: attrItem.option
             });
         });
-        return varArr;
-    }catch(e){
+        return output;
+    } catch (err) {
+        console.error("获取变体失败", err);
         return null;
     }
 }
 
-// 前端直接加入购物车，使用浏览器本地会话
-window.addToCart = async function(pid, type) {
+// 加入购物车：浏览器原生请求，共用本机购物车Cookie
+window.addToCart = async function(pid, productType) {
     const payload = {
         id: pid,
         quantity: 1
     };
-    // 可变商品补充标准variation数组
-    if(type === "variable") {
-        const varArr = await getVariantAttr(pid);
-        if(varArr) payload.variation = varArr;
+    // 可变商品拼接标准variation
+    if (productType === "variable") {
+        const varPayload = await getVariationPayload(pid);
+        if (varPayload) payload.variation = varPayload;
     }
-    console.log("最终提交体", payload);
+    console.log("提交购物车完整JSON", payload);
+
     try {
-        const res = await fetch("https://daqi.asia/wp-json/wc/store/cart/items", {
+        // 关键：credentials: "include" 带上当前浏览器全部购物车Cookie
+        const cartRes = await fetch("https://daqi.asia/wp-json/wc/store/cart/items", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -60,18 +63,36 @@ window.addToCart = async function(pid, type) {
             credentials: "include",
             body: JSON.stringify(payload)
         });
-        const ret = await res.json();
-        if(res.ok) {
-            alert("Add success! Cart will show goods");
-        }else{
-            console.log(ret);
-            alert("Failed");
+        const result = await cartRes.json();
+        console.log("购物车接口返回完整数据", result);
+
+        if (cartRes.ok) {
+            alert("Add to cart success! Please open cart page to view items");
+            // 自动拉取当前购物车，控制台打印已加入的商品，验证是否存入本地会话
+            refreshLocalCart();
+        } else {
+            alert("Add failed, check console log");
         }
-    }catch(e){
+    } catch (netErr) {
+        console.error("网络请求异常", netErr);
         alert("Network error");
     }
 };
 
+// 读取浏览器当前真实购物车，控制台输出所有商品，用来验证是否添加成功
+async function refreshLocalCart() {
+    try {
+        const cartData = await fetch("https://daqi.asia/wp-json/wc/store/cart", {
+            credentials: "include"
+        });
+        const cartJson = await cartData.json();
+        console.log("=== 当前浏览器本地购物车完整内容 ===", cartJson);
+    } catch (e) {
+        console.error("读取购物车失败", e);
+    }
+}
+
+// 加载商品列表
 async function loadAllGoods(){
     const tipDom = document.querySelector(".loading-tip");
     const boxDom = document.querySelector(".goods-box");
@@ -79,6 +100,7 @@ async function loadAllGoods(){
         const listRes = await fetch("https://daqi.asia/wp-json/wc/store/products", {
             credentials: "include"
         });
+        if (!listRes.ok) throw new Error("Load product failed");
         const goodsList = await listRes.json();
         tipDom.style.display = "none";
 
@@ -98,6 +120,7 @@ async function loadAllGoods(){
         boxDom.innerHTML = htmlStr;
     } catch (loadErr) {
         if (tipDom) tipDom.innerText = "Load product failed, refresh page";
+        console.error(loadErr);
     }
 }
 window.addEventListener("DOMContentLoaded", loadAllGoods);
