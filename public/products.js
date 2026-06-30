@@ -60,7 +60,7 @@ async function loadAllGoods(){
                     const varList = await getVariants(pid);
                     if (varList.length > 0) {
                         const firstVar = varList[0];
-                        // 三件套同时携带：父商品id、变体id、pa_前缀属性
+                        // 固定同时携带 父商品id + 变体id + pa_前缀属性
                         submitBody = {
                             id: pid,
                             variation: firstVar.id,
