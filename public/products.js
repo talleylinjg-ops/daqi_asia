@@ -12,14 +12,16 @@ async function addToCart(pid, qty = 1, extra = {}) {
             signal: AbortSignal.timeout(8000)
         });
         const addResult = await res.json();
+        console.log("加购接口完整返回：", addResult);
         if (!res.ok) {
-            throw new Error(addResult.message || "Add cart api error");
+            // 打印后端真实错误
+            throw new Error(addResult.message || `HTTP状态码：${res.status}`);
         }
         alert("Add to cart success!");
         return addResult;
-    } catch (err) {
-        console.error("加购请求失败", err);
-        alert("Add to cart failed, please retry");
+    } catch (err)
+        console.error("加购请求失败 详细原因：", err);
+        alert("Add to cart failed, please retry\nDetail: " + err.message);
         return null;
     }
 }
