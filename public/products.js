@@ -1,11 +1,13 @@
 "use strict";
 
-async function addToCart(pid, qty = 1, extra = {}) {
+async function addToCart(pid, qty = 1, productType = "simple", extra = {}) {
     let payload = { id: pid, quantity: qty, ...extra };
-    const variations = await getProductVariations(pid);
-
-    if (variations && variations.length > 0) {
-        payload.variation = variations[0].id;
+    // 只有可变商品才拉取变体
+    if (productType === "variable") {
+        const variations = await getProductVariations(pid);
+        if (variations && variations.length > 0) {
+            payload.variation = variations[0].id;
+        }
     }
 
     try {
@@ -87,14 +89,14 @@ window.loadGoods = async function () {
 
         l.forEach(function (i) {
             const img = i.images && i.images[0] ? i.images[0].thumbnail : "";
-
+            // 把商品type传给点击事件
             h += '<div style="border:1px solid #eee;padding:10px;border-radius:6px;">';
             if (img) {
                 h += '<img src="' + img + '" style="width:100%;height:200px;object-fit:cover;">';
             }
             h += '<h4>' + i.name + '</h4>';
             h += '<div style="color:#c00;">' + i.prices.price_html + '</div>';
-            h += '<button onclick="addToCart(' + i.id + ')" style="width:100%;margin-top:8px;padding:6px;background:#007bff;color:#fff;border:none;border-radius:4px;">Add To Cart</button>';
+            h += '<button onclick="addToCart(' + i.id + ', 1, \'' + i.type + '\')" style="width:100%;margin-top:8px;padding:6px;background:#007bff;color:#fff;border:none;border-radius:4px;">Add To Cart</button>';
             h += '</div>';
         });
 
