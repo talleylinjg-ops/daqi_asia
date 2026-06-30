@@ -1,20 +1,49 @@
 "use strict";
 
+let cachedNonce = "";
+
+// 同步读取缓存nonce，无则后台异步拉取
 function getWcNonce() {
+    // 1. 优先读取页面原生隐藏input
     const nonceInput = document.querySelector('input[name="wc_store_api_nonce"]');
-    if (nonceInput && nonceInput.value) {
-        return nonceInput.value;
+    if (nonceInput?.value) {
+        cachedNonce = nonceInput.value;
+        return cachedNonce;
     }
+    // 2. 读取页面全局nonce变量
     if (window.wcStoreApiNonce) {
-        return window.wcStoreApiNonce;
+        cachedNonce = window.wcStoreApiNonce;
+        return cachedNonce;
     }
-    return "";
+    // 3. 启动异步拉取nonce，先返回旧缓存
+    fetchNonceAsync();
+    return cachedNonce;
 }
 
+// 接口自动获取nonce存入缓存
+async function fetchNonceAsync() {
+    try {
+        const res = await fetch("https://daqi.asia/wp-json/wc/store/v1/nonce", {
+            signal: AbortSignal.timeout(5000)
+        });
+        if (!res.ok) throw new Error("nonce接口异常");
+        const data = await res.json();
+        cachedNonce = data.nonce;
+    } catch (err) {
+        console.error("自动获取验证参数失败", err);
+    }
+}
+
+// 加入购物车
 async function addToCart(pid, qty = 1, extra = {}) {
-    const n = getWcNonce();
+    let n = getWcNonce();
+    // 当前无缓存nonce，等待一次拉取
     if (!n) {
-        alert("缺少接口验证参数，无法加入购物车");
+        await fetchNonceAsync();
+        n = cachedNonce;
+    }
+    if (!n) {
+        alert("缺少接口验证参数，无法加入购物车，请刷新页面重试");
         return null;
     }
     const payload = { id: pid, quantity: qty, ...extra };
@@ -32,6 +61,7 @@ async function addToCart(pid, qty = 1, extra = {}) {
         if (!res.ok) {
             throw new Error(addResult.message || "加购接口返回异常");
         }
+        // 刷新购物车数据
         await fetch("https://daqi.asia/wp-json/wc/store/cart", {
             headers: { "X-WC-Store-API-Nonce": n },
             signal: AbortSignal.timeout(8000)
@@ -45,6 +75,7 @@ async function addToCart(pid, qty = 1, extra = {}) {
     }
 }
 
+// 获取商品变体列表
 async function getProductVariations(pid) {
     const n = getWcNonce();
     if (!n) return [];
@@ -55,7 +86,7 @@ async function getProductVariations(pid) {
         });
         const data = await res.json();
         if (!res.ok) {
-            console.log(`商品${pid}无变体接口，状态码：`, res.status);
+            console.log(`商品${pid}无变体，状态码：`, res.status);
             return [];
         }
         return data;
@@ -65,6 +96,7 @@ async function getProductVariations(pid) {
     }
 }
 
+// 页面初始化DOM容器
 (function initDom(){
     if(!document.querySelector(".loading-tip")){
         const p=document.createElement("p");
@@ -80,11 +112,15 @@ async function getProductVariations(pid) {
         d.style.padding="15px";
         document.body.prepend(d);
     }
+    // 页面加载立刻预拉取nonce
+    fetchNonceAsync();
 })();
 
+// 挂载全局方法，按钮onclick可调用
 window.addToCart = addToCart;
 window.getProductVariations = getProductVariations;
 
+// 加载全部商品列表
 window.loadGoods = async function(){
     const n = getWcNonce();
     try{
@@ -117,4 +153,5 @@ window.loadGoods = async function(){
     }
 };
 
+// 自动加载商品
 loadGoods();
