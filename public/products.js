@@ -1,7 +1,6 @@
 "use strict";
 
 (function initLayout(){
-    // 查看购物车按钮
     const cartViewBtn = document.createElement("button");
     cartViewBtn.innerText = "View Cart";
     cartViewBtn.style.position = "fixed";
@@ -29,7 +28,6 @@
     document.body.prepend(goodsWrap);
 })();
 
-// 读取浏览器购物车
 async function getCurrentCart() {
     try {
         const res = await fetch("https://daqi.asia/wp-json/wc/store/cart", {
@@ -37,54 +35,31 @@ async function getCurrentCart() {
         });
         const cart = await res.json();
         console.log("【本机浏览器购物车完整数据】", cart);
-        alert("打开控制台F12查看购物车打印内容");
+        alert("F12控制台查看购物车");
     } catch (e) {
-        console.error("读取购物车失败", e);
+        console.error(e);
     }
 }
 
-// 获取变体ID
-async function getVarId(pid) {
-    const ck = "ck_215cd99f4996b2dd6a503ad2a8ff7a7511c0b7fe";
-    const cs = "cs_9424255ada2191c49b5cd93adeac27880e3e071d";
+// 调用同域中转，彻底避开跨域
+window.addToCart = async function(pid) {
     try {
-        const res = await fetch(`https://daqi.asia/wp-json/wc/v3/products/${pid}/variations?consumer_key=${ck}&consumer_secret=${cs}`, {
-            credentials: "include"
-        });
-        const list = await res.json();
-        if(!list || list.length === 0) return null;
-        return list[0].id;
-    }catch(e){
-        return null;
-    }
-}
-
-// 加入购物车：移除 X-Requested-With 避免跨域拦截
-window.addToCart = async function(pid, type) {
-    let targetId = pid;
-    if(type === "variable") {
-        const vid = await getVarId(pid);
-        if(!vid) {
-            alert("获取变体失败");
-            return;
-        }
-        targetId = vid;
-    }
-    const addUrl = `https://daqi.asia/?add-to-cart=${targetId}`;
-    try {
-        const res = await fetch(addUrl, {
+        const res = await fetch("https://daqi.asia/cart-proxy.php", {
             method: "POST",
+            headers: { "Content-Type": "application/json" },
             credentials: "include",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: "quantity=1"
+            body: JSON.stringify({ pid: pid })
         });
-        alert("Add to cart success! Click View Cart to check");
-        getCurrentCart();
+        const ret = await res.json();
+        if (ret.success) {
+            alert("Add success, click View Cart to check");
+            getCurrentCart();
+        } else {
+            alert("Add failed");
+        }
     } catch (err) {
         console.error(err);
-        alert("Network / CORS error");
+        alert("Network error");
     }
 };
 
@@ -106,7 +81,7 @@ async function loadAllGoods(){
                     <img src="${imgSrc}" style="width:100%;height:200px;object-fit:cover;">
                     <h4>${item.name}</h4>
                     <div style="color:#c00;">${item.prices.price_html}</div>
-                    <button onclick="addToCart(${item.id}, '${item.type}')" style="width:100%;margin-top:8px;padding:6px;background:#007bff;color:#fff;border:none;border-radius:4px;">Add To Cart</button>
+                    <button onclick="addToCart(${item.id})" style="width:100%;margin-top:8px;padding:6px;background:#007bff;color:#fff;border:none;border-radius:4px;">Add To Cart</button>
                 </div>
             `;
         });
