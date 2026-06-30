@@ -1,5 +1,5 @@
 "use strict";
-// 后端关闭nonce校验，直接填空
+// 后端已关闭nonce校验，直接返回空，不发起任何网络请求
 function getWcNonce() {
     return "";
 }
@@ -10,7 +10,7 @@ function getWcNonce() {
     console.log("【页面加载】Nonce获取状态：", !!val, " 当前Nonce值：", val);
 })();
 
-// 加购
+// 加入购物车
 async function addToCart(pid, qty = 1, extra = {}) {
     const n = getWcNonce();
     console.log("【加购调试】携带Nonce: ", n);
