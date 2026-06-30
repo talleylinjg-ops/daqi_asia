@@ -50,4 +50,11 @@ async function getProductVariations(pid){
     console.error("变体接口请求异常",err);
     return [];
   }
+}function getWcNonce(){
+  let n=window.wcStoreNonce??"";
+  console.log("【Nonce调试打印】当前获取到的Nonce: ",n);
+  if(!n){
+    console.error("错误：未获取到Woo Store API Nonce，后端注入失效");
+  }
+  return n;
 }
