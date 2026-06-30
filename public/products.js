@@ -1,7 +1,14 @@
 "use strict";
 
 async function addToCart(pid, qty = 1, extra = {}) {
-    const payload = { id: pid, quantity: qty, ...extra };
+    let payload = { id: pid, quantity: qty, ...extra };
+    // 先拉取变体列表，判断是否为可变商品
+    const variations = await getProductVariations(pid);
+    // 存在变体，默认选第一个变体加入购物车
+    if (Array.isArray(variations) && variations.length > 0) {
+        payload.variation = variations[0].id;
+    }
+
     try {
         const res = await fetch("https://daqi.asia/wp-json/wc/store/cart/items", {
             method: "POST",
@@ -12,9 +19,8 @@ async function addToCart(pid, qty = 1, extra = {}) {
             signal: AbortSignal.timeout(8000)
         });
         const addResult = await res.json();
-        console.log("加购接口完整返回：", addResult);
+        console.log("加购返回数据：", addResult);
         if (!res.ok) {
-            // 打印后端真实错误
             throw new Error(addResult.message || `HTTP状态码：${res.status}`);
         }
         alert("Add to cart success!");
