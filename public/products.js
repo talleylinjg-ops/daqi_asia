@@ -1,19 +1,16 @@
 "use strict";
 
-// 获取Woo Store API Nonce（从页面原生隐藏input读取，不要写死空）
 function getWcNonce() {
     const nonceInput = document.querySelector('input[name="wc_store_api_nonce"]');
     if (nonceInput && nonceInput.value) {
         return nonceInput.value;
     }
-    // 备用：如果主题挂载到window全局
     if (window.wcStoreApiNonce) {
         return window.wcStoreApiNonce;
     }
     return "";
 }
 
-// 加购函数
 async function addToCart(pid, qty = 1, extra = {}) {
     const n = getWcNonce();
     if (!n) {
@@ -48,7 +45,6 @@ async function addToCart(pid, qty = 1, extra = {}) {
     }
 }
 
-// 获取商品变体
 async function getProductVariations(pid) {
     const n = getWcNonce();
     if (!n) return [];
@@ -69,7 +65,6 @@ async function getProductVariations(pid) {
     }
 }
 
-// 页面初始化：创建加载提示、商品容器
 (function initDom(){
     if(!document.querySelector(".loading-tip")){
         const p=document.createElement("p");
@@ -87,11 +82,9 @@ async function getProductVariations(pid) {
     }
 })();
 
-// 全局挂载加载商品、加购、获取变体方法
 window.addToCart = addToCart;
 window.getProductVariations = getProductVariations;
 
-// 加载商品列表
 window.loadGoods = async function(){
     const n = getWcNonce();
     try{
@@ -124,5 +117,4 @@ window.loadGoods = async function(){
     }
 };
 
-// 页面载入自动执行加载
 loadGoods();
