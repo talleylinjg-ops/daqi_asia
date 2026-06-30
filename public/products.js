@@ -1,7 +1,7 @@
 "use strict";
 
+// 页面顶部查看购物车按钮
 (function initLayout(){
-    // 查看购物车按钮
     const cartViewBtn = document.createElement("button");
     cartViewBtn.innerText = "View Cart";
     cartViewBtn.style.position = "fixed";
@@ -15,7 +15,7 @@
     cartViewBtn.onclick = getCurrentCart;
     document.body.appendChild(cartViewBtn);
 
-    // 隐藏原生提交表单，无跨域、同步更新浏览器购物Cookie
+    // 隐藏原生提交表单，同步更新浏览器购物Cookie，无跨域问题
     const form = document.createElement("form");
     form.style.display = "none";
     form.method = "POST";
@@ -41,7 +41,7 @@
     document.body.prepend(goodsWrap);
 })();
 
-// 读取浏览器购物车
+// 读取当前浏览器真实购物车
 async function getCurrentCart() {
     try {
         const res = await fetch("https://daqi.asia/wp-json/wc/store/cart", {
@@ -49,13 +49,13 @@ async function getCurrentCart() {
         });
         const cart = await res.json();
         console.log("【本机浏览器购物车完整数据】", cart);
-        alert("打开F12控制台查看购物车");
+        alert("打开F12控制台查看购物车列表");
     } catch (e) {
-        console.error(e);
+        console.error("读取购物车失败", e);
     }
 }
 
-// 获取变体ID
+// 获取可变商品第一个变体ID
 async function getVariantId(pid) {
     const ck = "ck_215cd99f4996b2dd6a503ad2a8ff7a7511c0b7fe";
     const cs = "cs_9424255ada2191c49b5cd93adeac27880e3e071d";
@@ -69,25 +69,26 @@ async function getVariantId(pid) {
     }
 }
 
-// 表单同步提交，自动更新浏览器购物Cookie，购物车一定能读到商品
+// 加入购物车：纯表单同步提交，不请求任何php中转文件，杜绝404
 window.addToCart = async function(pid, type) {
-    let addId = pid;
+    let targetId = pid;
     if (type === "variable") {
         const vid = await getVariantId(pid);
         if (!vid) {
-            alert("获取变体失败");
+            alert("获取商品规格失败");
             return;
         }
-        addId = vid;
+        targetId = vid;
     }
-    window.cartForm.action = `https://daqi.asia/?add-to-cart=${addId}`;
+    window.cartForm.action = `https://daqi.asia/?add-to-cart=${targetId}`;
     window.cartForm.submit();
     setTimeout(() => {
-        alert("加入购物车成功，点击右上角View Cart查看");
+        alert("商品加入成功，点击右上角View Cart查看购物车");
         getCurrentCart();
     }, 1000);
 };
 
+// 加载商品列表
 async function loadAllGoods(){
     const tipDom = document.querySelector(".loading-tip");
     const boxDom = document.querySelector(".goods-box");
@@ -112,6 +113,7 @@ async function loadAllGoods(){
         boxDom.innerHTML = htmlStr;
     } catch (loadErr) {
         if (tipDom) tipDom.innerText = "商品加载失败，请刷新页面";
+        console.error(loadErr);
     }
 }
 window.addEventListener("DOMContentLoaded", loadAllGoods);
