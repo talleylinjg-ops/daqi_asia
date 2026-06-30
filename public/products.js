@@ -12,31 +12,13 @@ function getWcNonce() {
         cachedNonce = window.wcStoreApiNonce;
         return cachedNonce;
     }
-    fetchNonceAsync();
     return cachedNonce;
 }
 
-async function fetchNonceAsync() {
-    try {
-        const res = await fetch("https://daqi.asia/wp-json/wc/store/v1/nonce", {
-            signal: AbortSignal.timeout(5000)
-        });
-        if (!res.ok) throw new Error("nonce接口异常");
-        const data = await res.json();
-        cachedNonce = data.nonce;
-    } catch (err) {
-        console.error("自动获取验证参数失败", err);
-    }
-}
-
 async function addToCart(pid, qty = 1, extra = {}) {
-    let n = getWcNonce();
+    const n = getWcNonce();
     if (!n) {
-        await fetchNonceAsync();
-        n = cachedNonce;
-    }
-    if (!n) {
-        alert("缺少接口验证参数，无法加入购物车，请刷新页面重试");
+        alert("页面验证参数加载失败，无法加入购物车");
         return null;
     }
     const payload = { id: pid, quantity: qty, ...extra };
@@ -102,23 +84,19 @@ async function getProductVariations(pid) {
         d.style.padding="15px";
         document.body.prepend(d);
     }
-    fetchNonceAsync();
 })();
 
 window.addToCart = addToCart;
 window.getProductVariations = getProductVariations;
 
 window.loadGoods = async function(){
-    const n = getWcNonce();
+    const t=document.querySelector(".loading-tip");
+    const b=document.querySelector(".goods-box");
     try{
         const r=await fetch("https://daqi.asia/wp-json/wc/store/products",{
-            headers:{
-                "X-WC-Store-API-Nonce": n
-            }
+            signal: AbortSignal.timeout(10000)
         });
         const l=await r.json();
-        const t=document.querySelector(".loading-tip");
-        const b=document.querySelector(".goods-box");
         if(!t||!b)return;
         t.style.display="none";
         let h=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">`;
@@ -134,8 +112,7 @@ window.loadGoods = async function(){
         h+=`</div>`;
         b.innerHTML=h;
     }catch(e){
-        const t=document.querySelector(".loading-tip");
-        if(t)t.textContent="加载异常";
+        if(t)t.textContent="商品加载超时，请刷新页面";
         console.error("商品列表加载失败", e);
     }
 };
