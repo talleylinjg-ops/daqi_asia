@@ -1,28 +1,19 @@
 "use strict";
-let cachedNonce = null;
-
-async function fetchWcNonce() {
-    if (cachedNonce) return cachedNonce;
-    try {
-        const res = await fetch("https://daqi.asia/wp-json/astro/v1/get-wc-nonce");
-        const data = await res.json();
-        cachedNonce = data.nonce;
-        console.log("【Nonce调试打印】当前获取到的Nonce: ", cachedNonce);
-        return cachedNonce;
-    } catch (e) {
-        console.error("拉取Nonce接口失败", e);
-        cachedNonce = "";
-        return "";
-    }
+async function getWcNonce() {
+    const n = window.wcStoreNonce ?? "";
+    console.log("【Nonce调试打印】当前获取到的Nonce: ", n);
+    return n;
 }
 
+// 页面加载打印日志
 (async function initLog() {
-    const val = await fetchWcNonce();
+    const val = await getWcNonce();
     console.log("【页面加载】Nonce获取状态：", !!val, " 当前Nonce值：", val);
 })();
 
+// 加入购物车
 async function addToCart(pid, qty = 1, extra = {}) {
-    const n = await fetchWcNonce();
+    const n = await getWcNonce();
     if (!n) return null;
     console.log("【加购调试】携带Nonce: ", n);
     const payload = { id: pid, quantity: qty, ...extra };
@@ -50,8 +41,9 @@ async function addToCart(pid, qty = 1, extra = {}) {
     }
 }
 
+// 获取商品变体
 async function getProductVariations(pid) {
-    const n = await fetchWcNonce();
+    const n = await getWcNonce();
     if (!n) return [];
     try {
         const res = await fetch(`/wp-json/wc/store/products/${pid}/variations`, {
