@@ -1,45 +1,21 @@
 "use strict";
 
-let cachedNonce = "";
-
-function getWcNonce() {
-    const nonceInput = document.querySelector('input[name="wc_store_api_nonce"]');
-    if (nonceInput?.value) {
-        cachedNonce = nonceInput.value;
-        return cachedNonce;
-    }
-    if (window.wcStoreApiNonce) {
-        cachedNonce = window.wcStoreApiNonce;
-        return cachedNonce;
-    }
-    return cachedNonce;
-}
-
+// 加购 - 移除所有nonce相关逻辑
 async function addToCart(pid, qty = 1, extra = {}) {
-    const n = getWcNonce();
-    if (!n) {
-        alert("页面验证参数加载失败，无法加入购物车");
-        return null;
-    }
     const payload = { id: pid, quantity: qty, ...extra };
     try {
         const res = await fetch("https://daqi.asia/wp-json/wc/store/cart/items", {
             method: "POST",
             headers: {
-                "Content-Type": "application/json",
-                "X-WC-Store-API-Nonce": n
+                "Content-Type": "application/json"
             },
             body: JSON.stringify(payload),
             signal: AbortSignal.timeout(8000)
         });
         const addResult = await res.json();
         if (!res.ok) {
-            throw new Error(addResult.message || "加购接口返回异常");
+            throw new Error(addResult.message || "Add cart api error");
         }
-        await fetch("https://daqi.asia/wp-json/wc/store/cart", {
-            headers: { "X-WC-Store-API-Nonce": n },
-            signal: AbortSignal.timeout(8000)
-        });
         alert("Add to cart success!");
         return addResult;
     } catch (err) {
@@ -49,12 +25,10 @@ async function addToCart(pid, qty = 1, extra = {}) {
     }
 }
 
+// 获取商品变体
 async function getProductVariations(pid) {
-    const n = getWcNonce();
-    if (!n) return [];
     try {
         const res = await fetch(`https://daqi.asia/wp-json/wc/store/products/${pid}/variations`, {
-            headers: { "X-WC-Store-API-Nonce": n },
             signal: AbortSignal.timeout(8000)
         });
         const data = await res.json();
@@ -69,6 +43,7 @@ async function getProductVariations(pid) {
     }
 }
 
+// 初始化加载容器
 (function initDom(){
     if(!document.querySelector(".loading-tip")){
         const p=document.createElement("p");
@@ -86,9 +61,11 @@ async function getProductVariations(pid) {
     }
 })();
 
+// 挂载全局按钮调用函数
 window.addToCart = addToCart;
 window.getProductVariations = getProductVariations;
 
+// 加载商品列表（移除nonce请求头）
 window.loadGoods = async function(){
     const t=document.querySelector(".loading-tip");
     const b=document.querySelector(".goods-box");
@@ -117,4 +94,5 @@ window.loadGoods = async function(){
     }
 };
 
+// 自动加载商品
 loadGoods();
