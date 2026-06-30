@@ -59,7 +59,7 @@ async function loadAllGoods(){
                 if (type === "variable") {
                     const varList = await getVariants(pid);
                     if (varList.length > 0) {
-                        // 模式A：只传变体ID和数量，删除 id、attributes 字段
+                        // 仅保留 variation + quantity，删除 id、attributes
                         submitBody = {
                             variation: varList[0].id,
                             quantity: 1
