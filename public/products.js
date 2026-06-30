@@ -2,17 +2,29 @@
 
 window.addToCart = async function(pid, qty = 1, type = "simple") {
     let reqData = { id: pid, quantity: qty };
+    // 仅可变商品才尝试拉取变体
     if (type === "variable") {
+        let hasValidVariation = false;
         try {
             const res = await fetch(`https://daqi.asia/wp-json/wc/store/products/${pid}/variations`, {
                 credentials: "include"
             });
             if (res.ok) {
                 const list = await res.json();
-                if (list.length > 0) reqData.variation = list[0].id;
+                if (list.length > 0) {
+                    reqData.variation = list[0].id;
+                    hasValidVariation = true;
+                }
             }
-        } catch (e) {}
+        } catch (e) {
+            // 404/网络异常直接忽略，不添加variation
+        }
+        // 无有效变体，强制删除variation字段，纯主商品ID提交
+        if (!hasValidVariation) {
+            delete reqData.variation;
+        }
     }
+
     try {
         const resp = await fetch("https://daqi.asia/wp-json/wc/store/cart/items", {
             method: "POST",
@@ -24,7 +36,7 @@ window.addToCart = async function(pid, qty = 1, type = "simple") {
             alert("Add to cart success!");
         } else {
             alert("Add to cart failed, please retry");
-            console.log("加购失败返回码：", resp.status, await resp.json());
+            console.log("Cart API Error:", resp.status, await resp.json());
         }
     } catch (err) {
         alert("Add to cart failed, please retry");
