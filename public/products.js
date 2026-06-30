@@ -3,40 +3,26 @@
 async function addToCart(pid, qty = 1, productType = "simple", extra = {}) {
     let payload = { id: pid, quantity: qty, ...extra };
 
-    // 仅可变商品尝试拉取变体
     if (productType === "variable") {
         let variations = [];
         try {
             const res = await fetch("https://daqi.asia/wp-json/wc/store/products/" + pid + "/variations", {
                 signal: AbortSignal.timeout(6000)
             });
-            // 接口正常返回且存在变体才赋值
-            if (res.ok) {
-                variations = await res.json();
-            }
-        } catch (err) {
-            variations = [];
-        }
-        // 有变体才携带variation参数，无变体直接只用主商品id
-        if (variations.length > 0) {
-            payload.variation = variations[0].id;
-        }
+            if (res.ok) variations = await res.json();
+        } catch (err) {}
+        if (variations.length > 0) payload.variation = variations[0].id;
     }
 
     try {
         const res = await fetch("https://daqi.asia/wp-json/wc/store/cart/items", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
             signal: AbortSignal.timeout(8000)
         });
         const addResult = await res.json();
-        if (!res.ok) {
-            alert("Add to cart failed, please retry");
-            return null;
-        }
+        if (!res.ok) throw new Error("fail");
         alert("Add to cart success!");
         return addResult;
     } catch (err) {
@@ -71,21 +57,18 @@ window.loadGoods = async function () {
         const r = await fetch("https://daqi.asia/wp-json/wc/store/products", {
             signal: AbortSignal.timeout(8000)
         });
-        if (!r.ok) throw new Error("接口异常");
+        if (!r.ok) throw new Error("api error");
         const l = await r.json();
         if (!t || !b) return;
         t.style.display = "none";
 
         let h = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">';
         l.forEach(function (i) {
-            const img = (i.images && i.images[0]) ? i.images[0].thumbnail : "";
+            const img = i.images && i.images[0] ? i.images[0].thumbnail : "";
             h += '<div style="border:1px solid #eee;padding:10px;border-radius:6px;">';
-            if (img) {
-                h += '<img src="' + img + '" style="width:100%;height:200px;object-fit:cover;">';
-            }
+            if (img) h += '<img src="' + img + '" style="width:100%;height:200px;object-fit:cover;">';
             h += '<h4>' + i.name + '</h4>';
             h += '<div style="color:#c00;">' + i.prices.price_html + '</div>';
-            // 传递商品类型type
             h += '<button onclick="addToCart(' + i.id + ',1,\'' + i.type + '\')" style="width:100%;margin-top:8px;padding:6px;background:#007bff;color:#fff;border:none;border-radius:4px;">Add To Cart</button>';
             h += '</div>';
         });
