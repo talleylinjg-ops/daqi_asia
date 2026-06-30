@@ -1,28 +1,21 @@
 "use strict";
 
-window.addToCart = async function(pid, qty = 1, type = "simple") {
+window.addToCart = async function(pid, qty = 1, type = "simple", slug = "") {
     let reqData = { id: pid, quantity: qty };
-    // 仅可变商品才尝试拉取变体
-    if (type === "variable") {
-        let hasValidVariation = false;
+    // 仅可变商品请求变体接口，使用slug而非id
+    if (type === "variable" && slug) {
         try {
-            const res = await fetch(`https://daqi.asia/wp-json/wc/store/products/${pid}/variations`, {
-                credentials: "include"
+            const res = await fetch(`https://daqi.asia/wp-json/wc/store/products/${slug}/variations`, {
+                credentials: "include",
+                signal: AbortSignal.timeout(5000)
             });
-            if (res.ok) {
+            if (res.status === 200) {
                 const list = await res.json();
-                if (list.length > 0) {
+                if (Array.isArray(list) && list.length > 0) {
                     reqData.variation = list[0].id;
-                    hasValidVariation = true;
                 }
             }
-        } catch (e) {
-            // 404/网络异常直接忽略，不添加variation
-        }
-        // 无有效变体，强制删除variation字段，纯主商品ID提交
-        if (!hasValidVariation) {
-            delete reqData.variation;
-        }
+        } catch (e) {}
     }
 
     try {
@@ -32,11 +25,12 @@ window.addToCart = async function(pid, qty = 1, type = "simple") {
             credentials: "include",
             body: JSON.stringify(reqData)
         });
+        const result = await resp.json();
         if (resp.ok) {
             alert("Add to cart success!");
         } else {
+            console.log("加购失败详情：", result);
             alert("Add to cart failed, please retry");
-            console.log("Cart API Error:", resp.status, await resp.json());
         }
     } catch (err) {
         alert("Add to cart failed, please retry");
@@ -74,7 +68,8 @@ async function loadGoods(){
             if(imgUrl) html += `<img src="${imgUrl}" style="width:100%;height:200px;object-fit:cover;">`;
             html += `<h4>${item.name}</h4>`;
             html += `<div style="color:#c00;">${item.prices.price_html}</div>`;
-            html += `<button onclick="addToCart(${item.id},1,'${item.type}')" style="width:100%;margin-top:8px;padding:6px;background:#007bff;color:#fff;border:none;border-radius:4px;">Add To Cart</button>`;
+            // 第四个参数传入商品slug，用于请求variations
+            html += `<button onclick="addToCart(${item.id},1,'${item.type}','${item.slug}')" style="width:100%;margin-top:8px;padding:6px;background:#007bff;color:#fff;border:none;border-radius:4px;">Add To Cart</button>`;
             html += `</div>`;
         });
         html += `</div>`;
