@@ -2,37 +2,40 @@
 
 window.addToCart = async function(pid, qty = 1, type = "simple", slug = "") {
     let reqData = { id: pid, quantity: qty };
-    // 仅可变商品请求变体接口，使用slug而非id
+
+    // 可变商品用slug请求变体接口，规避数字ID 404
     if (type === "variable" && slug) {
         try {
             const res = await fetch(`https://daqi.asia/wp-json/wc/store/products/${slug}/variations`, {
                 credentials: "include",
                 signal: AbortSignal.timeout(5000)
             });
-            if (res.status === 200) {
+            if (res.ok) {
                 const list = await res.json();
-                if (Array.isArray(list) && list.length > 0) {
+                if (list.length > 0) {
                     reqData.variation = list[0].id;
                 }
             }
-        } catch (e) {}
+        } catch (err) {}
     }
 
     try {
         const resp = await fetch("https://daqi.asia/wp-json/wc/store/cart/items", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: {
+                "Content-Type": "application/json"
+            },
             credentials: "include",
             body: JSON.stringify(reqData)
         });
-        const result = await resp.json();
+        const resJson = await resp.json();
         if (resp.ok) {
             alert("Add to cart success!");
         } else {
-            console.log("加购失败详情：", result);
+            console.log("Cart Error Detail：", resJson);
             alert("Add to cart failed, please retry");
         }
-    } catch (err) {
+    } catch (e) {
         alert("Add to cart failed, please retry");
     }
 };
@@ -58,7 +61,7 @@ async function loadGoods(){
         const res = await fetch("https://daqi.asia/wp-json/wc/store/products", {
             credentials: "include"
         });
-        if (!res.ok) throw new Error("接口异常");
+        if (!res.ok) throw new Error("load fail");
         const goodsList = await res.json();
         tip.style.display = "none";
         let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">';
@@ -68,7 +71,7 @@ async function loadGoods(){
             if(imgUrl) html += `<img src="${imgUrl}" style="width:100%;height:200px;object-fit:cover;">`;
             html += `<h4>${item.name}</h4>`;
             html += `<div style="color:#c00;">${item.prices.price_html}</div>`;
-            // 第四个参数传入商品slug，用于请求variations
+            // 传递第四个参数 item.slug 用于请求变体
             html += `<button onclick="addToCart(${item.id},1,'${item.type}','${item.slug}')" style="width:100%;margin-top:8px;padding:6px;background:#007bff;color:#fff;border:none;border-radius:4px;">Add To Cart</button>`;
             html += `</div>`;
         });
