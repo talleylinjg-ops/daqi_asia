@@ -7,7 +7,6 @@
     loadingTip.style.textAlign = "center";
     document.body.prepend(loadingTip);
 
-    // 给容器 class=goods-box，和查询选择器对应
     const goodsWrap = document.createElement("div");
     goodsWrap.className = "goods-box";
     goodsWrap.style.maxWidth = "1200px";
@@ -16,29 +15,63 @@
     document.body.prepend(goodsWrap);
 })();
 
-// 加购函数
-window.addToCart = async function(pid) {
+// 拉取单个商品变体属性
+async function getVariantAttr(pid) {
+    const ck = "ck_215cd99f4996b2dd6a503ad2a8ff7a7511c0b7fe";
+    const cs = "cs_9424255ada2191c49b5cd93adeac27880e3e071d";
     try {
-        const res = await fetch("https://daqi.asia/add-cart-proxy.php", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ pid: pid })
+        const res = await fetch(`https://daqi.asia/wp-json/wc/v3/products/${pid}/variations?consumer_key=${ck}&consumer_secret=${cs}`, {
+            credentials: "include"
         });
-        const data = await res.json();
-        if (data.success) {
-            alert("Add to cart success!");
-        } else {
-            console.log("Cart Error Detail：", data);
-            alert("Add to cart failed, please retry");
+        const list = await res.json();
+        if(!list || list.length === 0) return null;
+        const first = list[0];
+        const varArr = [];
+        first.attributes.forEach(item=>{
+            varArr.push({
+                attribute: item.slug,
+                value: item.option
+            });
+        });
+        return varArr;
+    }catch(e){
+        return null;
+    }
+}
+
+// 前端直接加入购物车，使用浏览器本地会话
+window.addToCart = async function(pid, type) {
+    const payload = {
+        id: pid,
+        quantity: 1
+    };
+    // 可变商品补充标准variation数组
+    if(type === "variable") {
+        const varArr = await getVariantAttr(pid);
+        if(varArr) payload.variation = varArr;
+    }
+    console.log("最终提交体", payload);
+    try {
+        const res = await fetch("https://daqi.asia/wp-json/wc/store/cart/items", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify(payload)
+        });
+        const ret = await res.json();
+        if(res.ok) {
+            alert("Add success! Cart will show goods");
+        }else{
+            console.log(ret);
+            alert("Failed");
         }
-    } catch (e) {
-        console.error(e);
-        alert("Add to cart failed, network error");
+    }catch(e){
+        alert("Network error");
     }
 };
 
-// 加载商品列表
 async function loadAllGoods(){
     const tipDom = document.querySelector(".loading-tip");
     const boxDom = document.querySelector(".goods-box");
@@ -46,7 +79,6 @@ async function loadAllGoods(){
         const listRes = await fetch("https://daqi.asia/wp-json/wc/store/products", {
             credentials: "include"
         });
-        if (!listRes.ok) throw new Error("Load product failed");
         const goodsList = await listRes.json();
         tipDom.style.display = "none";
 
@@ -58,7 +90,7 @@ async function loadAllGoods(){
                     <img src="${imgSrc}" style="width:100%;height:200px;object-fit:cover;">
                     <h4>${item.name}</h4>
                     <div style="color:#c00;">${item.prices.price_html}</div>
-                    <button onclick="addToCart(${item.id})" style="width:100%;margin-top:8px;padding:6px;background:#007bff;color:#fff;border:none;border-radius:4px;">Add To Cart</button>
+                    <button onclick="addToCart(${item.id}, '${item.type}')" style="width:100%;margin-top:8px;padding:6px;background:#007bff;color:#fff;border:none;border-radius:4px;">Add To Cart</button>
                 </div>
             `;
         });
@@ -66,9 +98,6 @@ async function loadAllGoods(){
         boxDom.innerHTML = htmlStr;
     } catch (loadErr) {
         if (tipDom) tipDom.innerText = "Load product failed, refresh page";
-        console.error(loadErr);
     }
 }
-
-// 等页面DOM全部加载完再请求商品，防止阻塞空白
 window.addEventListener("DOMContentLoaded", loadAllGoods);
