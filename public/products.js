@@ -3,12 +3,13 @@
 window.addToCart = async function(pid, qty = 1, type = "simple", varList = []) {
     const submitBody = { id: pid, quantity: qty };
 
-    // 仅可变商品且预加载到变体才追加参数
-    if (type === "variable" && varList.length > 0) {
+    if (type === "variable" && Array.isArray(varList) && varList.length > 0) {
         const firstVar = varList[0];
         submitBody.variation = firstVar.id;
         submitBody.attributes = firstVar.attributes;
     }
+    // 打印完整提交数据，直接在控制台查看是否携带attributes
+    console.log("完整提交体", submitBody);
 
     try {
         const cartRes = await fetch("https://daqi.asia/wp-json/wc/store/cart/items", {
@@ -46,7 +47,6 @@ async function loadAllGoods(){
     const tipDom = document.querySelector(".loading-tip");
     const boxDom = document.querySelector(".goods-box");
     try {
-        // _embed 预加载所有变体，彻底取消单独/variations请求
         const listRes = await fetch("https://daqi.asia/wp-json/wc/store/products?_embed", {
             credentials: "include"
         });
@@ -57,16 +57,19 @@ async function loadAllGoods(){
         let htmlStr = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">';
         goodsData.forEach(item => {
             const imgSrc = item.images?.[0]?.thumbnail || "";
-            // 取出预嵌入的变体数组
-            const variants = item._embedded?.variations ?? [];
-            // JSON转义，避免html onclick语法报错
-            const varStr = JSON.stringify(variants).replace(/"/g, "&quot;");
+            const variants = item._embedded?.variations || [];
+            // 关键修复：先转单引号，再转HTML实体，杜绝onclick引号截断
+            const varJson = JSON.stringify(variants)
+                .replace(/\\/g, "\\\\")
+                .replace(/'/g, "\\'")
+                .replace(/"/g, "&quot;");
 
             htmlStr += `<div style="border:1px solid #eee;padding:10px;border-radius:6px;">`;
             if (imgSrc) htmlStr += `<img src="${imgSrc}" style="width:100%;height:200px;object-fit:cover;">`;
             htmlStr += `<h4>${item.name}</h4>`;
             htmlStr += `<div style="color:#c00;">${item.prices.price_html}</div>`;
-            htmlStr += `<button onclick='addToCart(${item.id},1,"${item.type}",${varStr})' style="width:100%;margin-top:8px;padding:6px;background:#007bff;color:#fff;border:none;border-radius:4px;">Add To Cart</button>`;
+            // 外层单引号包裹函数参数，避免JSON双引号破坏onclick语法
+            htmlStr += `<button onclick='addToCart(${item.id},1,"${item.type}",${varJson})' style="width:100%;margin-top:8px;padding:6px;background:#007bff;color:#fff;border:none;border-radius:4px;">Add To Cart</button>`;
             htmlStr += `</div>`;
         });
         htmlStr += `</div>`;
