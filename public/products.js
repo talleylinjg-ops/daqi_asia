@@ -3,18 +3,21 @@
 async function addToCart(pid, qty = 1, productType = "simple", extra = {}) {
     let payload = { id: pid, quantity: qty, ...extra };
 
+    // 仅可变商品尝试拉取变体
     if (productType === "variable") {
         let variations = [];
         try {
             const res = await fetch("https://daqi.asia/wp-json/wc/store/products/" + pid + "/variations", {
                 signal: AbortSignal.timeout(6000)
             });
+            // 接口正常返回且存在变体才赋值
             if (res.ok) {
                 variations = await res.json();
             }
         } catch (err) {
             variations = [];
         }
+        // 有变体才携带variation参数，无变体直接只用主商品id
         if (variations.length > 0) {
             payload.variation = variations[0].id;
         }
@@ -68,7 +71,7 @@ window.loadGoods = async function () {
         const r = await fetch("https://daqi.asia/wp-json/wc/store/products", {
             signal: AbortSignal.timeout(8000)
         });
-        if (!r.ok) throw new Error("商品接口异常");
+        if (!r.ok) throw new Error("接口异常");
         const l = await r.json();
         if (!t || !b) return;
         t.style.display = "none";
@@ -82,6 +85,7 @@ window.loadGoods = async function () {
             }
             h += '<h4>' + i.name + '</h4>';
             h += '<div style="color:#c00;">' + i.prices.price_html + '</div>';
+            // 传递商品类型type
             h += '<button onclick="addToCart(' + i.id + ',1,\'' + i.type + '\')" style="width:100%;margin-top:8px;padding:6px;background:#007bff;color:#fff;border:none;border-radius:4px;">Add To Cart</button>';
             h += '</div>';
         });
