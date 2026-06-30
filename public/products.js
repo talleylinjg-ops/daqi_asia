@@ -1,10 +1,10 @@
 "use strict";
 
 window.addToCart = async function(pid, qty = 1, type = "simple", varList = []) {
-    let submitBody = { id: pid, quantity: qty };
+    const submitBody = { id: pid, quantity: qty };
 
-    // 商品列表已预加载变体，无需额外发请求
-    if (type === "variable" && Array.isArray(varList) && varList.length > 0) {
+    // 仅可变商品且预加载到变体才追加参数
+    if (type === "variable" && varList.length > 0) {
         const firstVar = varList[0];
         submitBody.variation = firstVar.id;
         submitBody.attributes = firstVar.attributes;
@@ -46,7 +46,7 @@ async function loadAllGoods(){
     const tipDom = document.querySelector(".loading-tip");
     const boxDom = document.querySelector(".goods-box");
     try {
-        // 关键：带上?_embed，商品列表直接内嵌variations，不用二次请求
+        // _embed 预加载所有变体，彻底取消单独/variations请求
         const listRes = await fetch("https://daqi.asia/wp-json/wc/store/products?_embed", {
             credentials: "include"
         });
@@ -57,14 +57,16 @@ async function loadAllGoods(){
         let htmlStr = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">';
         goodsData.forEach(item => {
             const imgSrc = item.images?.[0]?.thumbnail || "";
-            // 从_embed里取出预加载的变体数组
-            const variants = item._embedded?.variations || [];
+            // 取出预嵌入的变体数组
+            const variants = item._embedded?.variations ?? [];
+            // JSON转义，避免html onclick语法报错
+            const varStr = JSON.stringify(variants).replace(/"/g, "&quot;");
+
             htmlStr += `<div style="border:1px solid #eee;padding:10px;border-radius:6px;">`;
             if (imgSrc) htmlStr += `<img src="${imgSrc}" style="width:100%;height:200px;object-fit:cover;">`;
             htmlStr += `<h4>${item.name}</h4>`;
             htmlStr += `<div style="color:#c00;">${item.prices.price_html}</div>`;
-            // 把预加载的变体数组直接传给点击事件，不再请求接口
-            htmlStr += `<button onclick='addToCart(${item.id},1,"${item.type}",${JSON.stringify(variants)})' style="width:100%;margin-top:8px;padding:6px;background:#007bff;color:#fff;border:none;border-radius:4px;">Add To Cart</button>`;
+            htmlStr += `<button onclick='addToCart(${item.id},1,"${item.type}",${varStr})' style="width:100%;margin-top:8px;padding:6px;background:#007bff;color:#fff;border:none;border-radius:4px;">Add To Cart</button>`;
             htmlStr += `</div>`;
         });
         htmlStr += `</div>`;
