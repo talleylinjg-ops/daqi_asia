@@ -37,49 +37,58 @@ async function getCurrentCart() {
         });
         const cart = await res.json();
         console.log("【本机浏览器购物车完整数据】", cart);
-        alert("F12控制台查看购物车");
+        alert("打开控制台F12查看购物车打印内容");
     } catch (e) {
-        console.error(e);
+        console.error("读取购物车失败", e);
     }
 }
 
-// 传统表单方式加入购物车，写入浏览器真实Cookie，购物车可读取
-window.addToCart = async function (pid, type) {
-    let addUrl = "";
-    // 简单商品
-    if (type === "simple") {
-        addUrl = `https://daqi.asia/?add-to-cart=${pid}`;
-    }
-    // 可变商品：直接填变体ID
-    if (type === "variable") {
-        const ck = "ck_215cd99f4996b2dd6a503ad2a8ff7a7511c0b7fe";
-        const cs = "cs_9424255ada2191c49b5cd93adeac27880e3e071d";
-        const varRes = await fetch(`https://daqi.asia/wp-json/wc/v3/products/${pid}/variations?consumer_key=${ck}&consumer_secret=${cs}`, {credentials:"include"});
-        const varList = await varRes.json();
-        const varId = varList[0].id;
-        addUrl = `https://daqi.asia/?add-to-cart=${varId}`;
-    }
-
+// 获取变体ID
+async function getVarId(pid) {
+    const ck = "ck_215cd99f4996b2dd6a503ad2a8ff7a7511c0b7fe";
+    const cs = "cs_9424255ada2191c49b5cd93adeac27880e3e071d";
     try {
-        // 带cookie请求，写入本地购物会话
+        const res = await fetch(`https://daqi.asia/wp-json/wc/v3/products/${pid}/variations?consumer_key=${ck}&consumer_secret=${cs}`, {
+            credentials: "include"
+        });
+        const list = await res.json();
+        if(!list || list.length === 0) return null;
+        return list[0].id;
+    }catch(e){
+        return null;
+    }
+}
+
+// 加入购物车：移除 X-Requested-With 避免跨域拦截
+window.addToCart = async function(pid, type) {
+    let targetId = pid;
+    if(type === "variable") {
+        const vid = await getVarId(pid);
+        if(!vid) {
+            alert("获取变体失败");
+            return;
+        }
+        targetId = vid;
+    }
+    const addUrl = `https://daqi.asia/?add-to-cart=${targetId}`;
+    try {
         const res = await fetch(addUrl, {
             method: "POST",
             credentials: "include",
             headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-                "X-Requested-With": "XMLHttpRequest"
+                "Content-Type": "application/x-www-form-urlencoded"
             },
-            body: `quantity=1`
+            body: "quantity=1"
         });
         alert("Add to cart success! Click View Cart to check");
         getCurrentCart();
     } catch (err) {
         console.error(err);
-        alert("Add failed");
+        alert("Network / CORS error");
     }
 };
 
-async function loadAllGoods() {
+async function loadAllGoods(){
     const tipDom = document.querySelector(".loading-tip");
     const boxDom = document.querySelector(".goods-box");
     try {
@@ -105,6 +114,7 @@ async function loadAllGoods() {
         boxDom.innerHTML = htmlStr;
     } catch (loadErr) {
         if (tipDom) tipDom.innerText = "Load product failed, refresh page";
+        console.error(loadErr);
     }
 }
 window.addEventListener("DOMContentLoaded", loadAllGoods);
