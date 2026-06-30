@@ -21,7 +21,7 @@ async function addToCart(pid, qty = 1, extra = {}) {
         const addResult = await res.json();
 
         if (!res.ok) {
-            alert("Add to cart failed");
+            alert("Add to cart failed, please retry");
             return null;
         }
 
