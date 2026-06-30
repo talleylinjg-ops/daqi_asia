@@ -59,9 +59,12 @@ async function loadAllGoods(){
                 if (type === "variable") {
                     const varList = await getVariants(pid);
                     if (varList.length > 0) {
-                        // 核心修复：只传 variation，不传 id、不传 attributes
+                        const firstVar = varList[0];
+                        // 三件套同时携带：父商品id、变体id、pa_前缀属性
                         submitBody = {
-                            variation: varList[0].id,
+                            id: pid,
+                            variation: firstVar.id,
+                            attributes: firstVar.attributes,
                             quantity: 1
                         };
                     } else {
