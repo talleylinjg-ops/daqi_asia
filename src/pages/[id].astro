@@ -1,7 +1,8 @@
 ---
-const WC_SITE = import.meta.env.WC_SITE || "https://daqi.asia";
+const WC_SITE = "https://daqi.asia";
 
 export async function getStaticPaths() {
+  const WC_SITE = "https://daqi.asia";
   let products = [];
   try {
     const res = await fetch(`${WC_SITE}/wp-json/wc/store/products`, {
@@ -9,17 +10,15 @@ export async function getStaticPaths() {
       signal: AbortSignal.timeout(10000)
     });
     if (res.ok) {
-      const data = await res.json();
-      products = Array.isArray(data) ? data : [];
+      products = await res.json();
     }
   } catch (e) {
-    console.error("è·å–å•†å“åˆ—è¡¨å¤±è´¥:", e);
+    console.error("»ñÈ¡ÉÌÆ·ÁĞ±íÊ§°Ü:", e);
   }
-  // è¿”å›æ•°ç»„ï¼ˆé™æ€æ¨¡å¼ä¸‹å¿…é¡»ï¼‰
   return products.map(p => ({ params: { id: String(p.id) } }));
 }
 
-const {id} = Astro.params;
+const { id } = Astro.params;
 let product = null;
 let fetchError = false;
 
@@ -34,7 +33,7 @@ try {
     fetchError = true;
   }
 } catch (e) {
-  console.error(`è·å–å•†å“ ${id} å¤±è´¥:`, e);
+  console.error(`»ñÈ¡ÉÌÆ· ${id} Ê§°Ü:`, e);
   fetchError = true;
 }
 ---
@@ -42,7 +41,7 @@ try {
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>{product?.name || "å•†å“è¯¦æƒ… - Daqi Asia"}</title>
+<title>{product?.name || "ÉÌÆ·ÏêÇé - Daqi Asia"}</title>
 <style>
 .detail-wrap {max-width:1200px;margin:30px auto;display:grid;grid-template-columns:1fr 1fr;gap:40px;padding:0 20px;}
 .main-img {width:100%;height:420px;object-fit:cover;border-radius:8px;}
@@ -63,7 +62,7 @@ select {width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;}
 <body>
 <button class="fixed-cart-btn" type="button" onclick="openCart()">View Cart</button>
 
-{fetchError ? '<div style="max-width:800px;margin:40px auto;text-align:center;padding:40px;"><h2>å•†å“åŠ è½½å¤±è´¥</h2><p style="color:#999;">è¯·è¿”å›é¦–é¡µé‡è¯•</p><a href="/" style="display:inline-block;margin-top:20px;padding:10px 24px;background:#007bff;color:#fff;text-decoration:none;border-radius:4px;">è¿”å›é¦–é¡µ</a></div>' : ''}
+{fetchError ? '<div style="max-width:800px;margin:40px auto;text-align:center;padding:40px;"><h2>ÉÌÆ·¼ÓÔØÊ§°Ü</h2><p style="color:#999;">Çë·µ»ØÊ×Ò³ÖØÊÔ</p><a href="/" style="display:inline-block;margin-top:20px;padding:10px 24px;background:#007bff;color:#fff;text-decoration:none;border-radius:4px;">·µ»ØÊ×Ò³</a></div>' : ''}
 
 {product ? `
 <div class="detail-wrap">
@@ -73,8 +72,8 @@ select {width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;}
     <div class="price-text">${product.prices?.price_html || ''}</div>
     <div style="margin:20px 0;">${product.description || ''}</div>
     <input class="qty-input" id="qty" value="1" min="1" type="number">
-    <button class="add-cart-btn" type="button" data-pid="${product.id}" data-type="${product.type || 'simple'}" id="detailAddBtn" onclick="handleDetailAdd(this)">
-      ${product.type === 'variable' ? 'é€‰æ‹©è§„æ ¼åŠ å…¥è´­ç‰©è½¦' : 'åŠ å…¥è´­ç‰©è½¦'}
+    <button class="add-cart-btn" type="button" onclick="handleDetailAdd()">
+      ${product.type === 'variable' ? 'Ñ¡Ôñ¹æ¸ñ¼ÓÈë¹ºÎï³µ' : '¼ÓÈë¹ºÎï³µ'}
     </button>
   </div>
 </div>
@@ -82,15 +81,17 @@ select {width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;}
 ` : ''}
 
 <script is:inline>
-const WC_SITE = import.meta.env.WC_SITE || "https://daqi.asia";
+const WC_SITE = "https://daqi.asia";
+const pid = Number("{product?.id ?? ''}");
+const productType = "{product?.type ?? ''}";
 let allVarsData = null;
 window.selectedAttrs = {};
 
 async function openCart(){
   const res = await fetch(`${WC_SITE}/wp-json/wc/store/cart`,{credentials:"include"});
   const cart = await res.json();
-  console.log("è´­ç‰©è½¦", cart);
-  alert("F12æ§åˆ¶å°æŸ¥çœ‹è´­ç‰©è½¦");
+  console.log("¹ºÎï³µ", cart);
+  alert("F12¿ØÖÆÌ¨²é¿´¹ºÎï³µ");
 }
 
 async function ajaxAddCart(pid, vid, qty, attrs){
@@ -108,14 +109,14 @@ async function ajaxAddCart(pid, vid, qty, attrs){
     });
     const ret = await resp.json();
     if(ret.success){
-      alert(ret.data.msg + " è´­ç‰©è½¦æ•°é‡ï¼š" + ret.data.cart_count);
+      alert(ret.data.msg + " ¹ºÎï³µÊıÁ¿£º" + ret.data.cart_count);
       document.getElementById("varModal").style.display = "none";
       window.selectedAttrs = {};
     } else {
       alert(ret.data.msg);
     }
   } catch(err) {
-    alert("åŠ è´­å¤±è´¥");
+    alert("¼Ó¹ºÊ§°Ü");
     console.error(err);
   }
 }
@@ -145,46 +146,32 @@ function getMatchVid(){
 async function submitDetailVar(qty){
   const vid = getMatchVid();
   if(!vid){
-    alert("è¯·å®Œæ•´é€‰æ‹©æ‰€æœ‰è§„æ ¼");
+    alert("ÇëÍêÕûÑ¡ÔñËùÓĞ¹æ¸ñ");
     return;
   }
   await ajaxAddCart(pid, vid, qty, window.selectedAttrs);
 }
 
-async function handleDetailAdd(btn){
-  const pid = Number(btn.dataset.pid);
-  const productType = btn.dataset.type;
-  console.log("handleDetailAdd triggered:", {pid, productType});
+async function handleDetailAdd(){
   const qty = Number(document.getElementById("qty").value) || 1;
   if(productType === "simple"){
     await ajaxAddCart(pid, 0, qty, []);
   } else {
-    try {
-      const res = await fetch(`${WC_SITE}/wp-json/custom/v1/products/${pid}/vars`,{credentials:"include"});
-      if (!res.ok) { alert("è·å–è§„æ ¼å¤±è´¥"); return; }
-      const data = await res.json();
-      const {attributes} = data;
-      if (!attributes || Object.keys(attributes).length === 0) {
-        await ajaxAddCart(pid, 0, qty, []);
-        return;
-      }
-      allVarsData = data;
-      let html = `<div class="modal-mask" onclick="closeModal(event)"><div class="modal-box" onclick="event.stopPropagation()"><h3>é€‰æ‹©è§„æ ¼</h3>`;
-      Object.keys(attributes).forEach(key=>{
-        const name = key.replace('pa_','');
-        html += `<div class="attr-row"><label class="attr-label">${name}</label><select data-attr="${key}" onchange="window.selectedAttrs['${key}']=this.value"><option value="">è¯·é€‰æ‹©</option>`;
-        attributes[key].forEach(opt=>{
-          html += `<option value="${opt}">${opt}</option>`;
-        });
-        html += `</select></div>`;
+    const res = await fetch(`${WC_SITE}/wp-json/custom/v1/products/${pid}/vars`,{credentials:"include"});
+    allVarsData = await res.json();
+    const {attributes} = allVarsData;
+    let html = `<div class="modal-mask" onclick="closeModal(event)"><div class="modal-box" onclick="event.stopPropagation()"><h3>Ñ¡Ôñ¹æ¸ñ</h3>`;
+    Object.keys(attributes).forEach(key=>{
+      const name = key.replace('pa_','');
+      html += `<div class="attr-row"><label class="attr-label">${name}</label><select data-attr="${key}" onchange="window.selectedAttrs['${key}']=this.value"><option value="">ÇëÑ¡Ôñ</option>`;
+      attributes[key].forEach(opt=>{
+        html += `<option value="${opt}">${opt}</option>`;
       });
-      html += `<div class="modal-btns"><button class="cancel-btn" type="button" onclick="closeModal()">å–æ¶ˆ</button><button class="confirm-btn" type="button" onclick="submitDetailVar(${qty})">ç¡®è®¤åŠ å…¥${qty}ä»¶</button></div></div></div>`;
-      document.getElementById("varModal").innerHTML = html;
-      document.getElementById("varModal").style.display = "block";
-    } catch(err) {
-      console.error("å˜ä½“æ¥å£è¯·æ±‚å¼‚å¸¸", err);
-      alert("å•†å“è§„æ ¼åŠ è½½å¤±è´¥ï¼Œè¯·é‡è¯•");
-    }
+      html += `</select></div>`;
+    });
+    html += `<div class="modal-btns"><button class="cancel-btn" type="button" onclick="closeModal()">È¡Ïû</button><button class="confirm-btn" type="button" onclick="submitDetailVar(${qty})">È·ÈÏ¼ÓÈë${qty}¼ş</button></div></div></div>`;
+    document.getElementById("varModal").innerHTML = html;
+    document.getElementById("varModal").style.display = "block";
   }
 }
 </script>
