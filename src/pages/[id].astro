@@ -6,7 +6,7 @@ export async function getStaticPaths() {
   try {
     const res = await fetch(`${WC_SITE}/wp-json/wc/store/products`, {
       headers: { "Accept": "application/json" },
-      signal: AbortSignal.timeout(8000)
+      signal: AbortSignal.timeout(10000)
     });
     if (res.ok) {
       products = await res.json();
@@ -27,7 +27,7 @@ let fetchError = false;
 try {
   const productRes = await fetch(`${WC_SITE}/wp-json/wc/store/products/${id}`, {
     headers: { "Accept": "application/json" },
-    signal: AbortSignal.timeout(8000)
+    signal: AbortSignal.timeout(10000)
   });
   if (productRes.ok) {
     product = await productRes.json();
@@ -55,7 +55,7 @@ try {
 .attr-row {margin:12px 0;}
 .attr-label {display:block;margin-bottom:6px;font-weight:bold;}
 select {width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;}
-.modal-btns {display:flex;gap:10;margin-top:20px;}
+.modal-btns {display:flex;gap:10px;margin-top:20px;}
 .cancel-btn {flex:1;padding:10px;border:1px solid #999;background:#fff;cursor:pointer;}
 .confirm-btn {flex:1;padding:10px;background:#007bff;color:#fff;border:none;cursor:pointer;}
 .fixed-cart-btn {position:fixed;top:10px;right:10px;padding:6px 12px;background:#333;color:#fff;border:none;border-radius:4px;cursor:pointer;z-index:100;}
@@ -74,7 +74,7 @@ select {width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;}
     <div class="price-text">${product.prices?.price_html || ''}</div>
     <div style="margin:20px 0;">${product.description || ''}</div>
     <input class="qty-input" id="qty" value="1" min="1" type="number">
-    <button class="add-cart-btn" type="button" onclick="handleDetailAdd()">
+    <button class="add-cart-btn" type="button" data-pid="${product.id}" data-type="${product.type || 'simple'}" id="detailAddBtn" onclick="handleDetailAdd(this)">
       ${product.type === 'variable' ? '选择规格加入购物车' : '加入购物车'}
     </button>
   </div>
@@ -84,8 +84,6 @@ select {width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;}
 
 <script is:inline>
 const WC_SITE = "https://daqi.asia";
-const pid = Number("{product?.id ?? ''}");
-const productType = "{product?.type ?? ''}";
 let allVarsData = null;
 window.selectedAttrs = {};
 
@@ -154,26 +152,40 @@ async function submitDetailVar(qty){
   await ajaxAddCart(pid, vid, qty, window.selectedAttrs);
 }
 
-async function handleDetailAdd(){
+async function handleDetailAdd(btn){
+  const pid = Number(btn.dataset.pid);
+  const productType = btn.dataset.type;
+  console.log("handleDetailAdd triggered:", {pid, productType});
   const qty = Number(document.getElementById("qty").value) || 1;
   if(productType === "simple"){
     await ajaxAddCart(pid, 0, qty, []);
   } else {
-    const res = await fetch(`${WC_SITE}/wp-json/custom/v1/products/${pid}/vars`,{credentials:"include"});
-    allVarsData = await res.json();
-    const {attributes} = allVarsData;
-    let html = `<div class="modal-mask" onclick="closeModal(event)"><div class="modal-box" onclick="event.stopPropagation()"><h3>选择规格</h3>`;
-    Object.keys(attributes).forEach(key=>{
-      const name = key.replace('pa_','');
-      html += `<div class="attr-row"><label class="attr-label">${name}</label><select data-attr="${key}" onchange="window.selectedAttrs['${key}']=this.value"><option value="">请选择</option>`;
-      attributes[key].forEach(opt=>{
-        html += `<option value="${opt}">${opt}</option>`;
+    try {
+      const res = await fetch(`${WC_SITE}/wp-json/custom/v1/products/${pid}/vars`,{credentials:"include"});
+      if (!res.ok) { alert("获取规格失败"); return; }
+      const data = await res.json();
+      const {attributes} = data;
+      if (!attributes || Object.keys(attributes).length === 0) {
+        await ajaxAddCart(pid, 0, qty, []);
+        return;
+      }
+      allVarsData = data;
+      let html = `<div class="modal-mask" onclick="closeModal(event)"><div class="modal-box" onclick="event.stopPropagation()"><h3>选择规格</h3>`;
+      Object.keys(attributes).forEach(key=>{
+        const name = key.replace('pa_','');
+        html += `<div class="attr-row"><label class="attr-label">${name}</label><select data-attr="${key}" onchange="window.selectedAttrs['${key}']=this.value"><option value="">请选择</option>`;
+        attributes[key].forEach(opt=>{
+          html += `<option value="${opt}">${opt}</option>`;
+        });
+        html += `</select></div>`;
       });
-      html += `</select></div>`;
-    });
-    html += `<div class="modal-btns"><button class="cancel-btn" type="button" onclick="closeModal()">取消</button><button class="confirm-btn" type="button" onclick="submitDetailVar(${qty})">确认加入${qty}件</button></div></div></div>`;
-    document.getElementById("varModal").innerHTML = html;
-    document.getElementById("varModal").style.display = "block";
+      html += `<div class="modal-btns"><button class="cancel-btn" type="button" onclick="closeModal()">取消</button><button class="confirm-btn" type="button" onclick="submitDetailVar(${qty})">确认加入${qty}件</button></div></div></div>`;
+      document.getElementById("varModal").innerHTML = html;
+      document.getElementById("varModal").style.display = "block";
+    } catch(err) {
+      console.error("变体接口请求异常", err);
+      alert("商品规格加载失败，请重试");
+    }
   }
 }
 </script>
