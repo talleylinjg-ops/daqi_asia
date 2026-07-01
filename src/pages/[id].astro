@@ -1,5 +1,5 @@
 ---
-const WC_SITE = "https://daqi.asia";
+const WC_SITE = import.meta.env.WC_SITE || "https://daqi.asia";
 
 export async function getStaticPaths() {
   let products = [];
@@ -9,15 +9,14 @@ export async function getStaticPaths() {
       signal: AbortSignal.timeout(10000)
     });
     if (res.ok) {
-      products = await res.json();
+      const data = await res.json();
+      products = Array.isArray(data) ? data : [];
     }
   } catch (e) {
     console.error("获取商品列表失败:", e);
   }
-  return {
-    paths: products.map(p => ({params:{id:String(p.id)}})),
-    fallback: "blocking"
-  };
+  // 返回数组（静态模式下必须）
+  return products.map(p => ({ params: { id: String(p.id) } }));
 }
 
 const {id} = Astro.params;
@@ -83,7 +82,7 @@ select {width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;}
 ` : ''}
 
 <script is:inline>
-const WC_SITE = "https://daqi.asia";
+const WC_SITE = import.meta.env.WC_SITE || "https://daqi.asia";
 let allVarsData = null;
 window.selectedAttrs = {};
 
