@@ -1,30 +1,157 @@
 ---
-// 页面结构，所有 JavaScript 在 public/products.js 中
+const WC_SITE = "https://daqi.asia";
+async function getProducts() {
+  const res = await fetch(`${WC_SITE}/wp-json/wc/store/products`, {credentials: "include"});
+  return await res.json();
+}
+const products = await getProducts();
 ---
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Daqi Asia 热卖商品</title>
+<style>
+  .goods-wrap {max-width: 1240px;margin: 0 auto;padding: 20px;}
+  .goods-grid {display: grid;grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));gap: 20px;}
+  .goods-card {border: 1px solid #eee;padding: 12px;border-radius: 8px;}
+  .goods-img {width: 100%;height: 200px;object-fit: cover;border-radius: 4px;}
+  .add-cart-btn {width: 100%;padding: 8px 0;background: #007bff;color: #fff;border: none;border-radius: 4px;margin-top: 10px;cursor: pointer;}
+  .loading-tip {text-align: center;font-size: 16px;padding: 30px 0;}
+  .modal-mask {position: fixed;inset: 0;background: rgba(0,0,0,0.5);display: flex;align-items: center;justify-content: center;z-index:999;}
+  .modal-box {background:#fff;padding:24px;border-radius:10px;width:90%;max-width:500px;}
+  .attr-row {margin:12px 0;}
+  .attr-label {display:block;margin-bottom:6px;font-weight:bold;}
+  select {width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;}
+  .modal-btns {display:flex;gap:10;margin-top:20px;}
+  .cancel-btn {flex:1;padding:10px;border:1px solid #999;background:#fff;cursor:pointer;}
+  .confirm-btn {flex:1;padding:10px;background:#007bff;color:#fff;border:none;cursor:pointer;}
+  .fixed-cart-btn {position:fixed;top:10px;right:10px;padding:6px 12px;background:#333;color:#fff;border:none;border-radius:4px;cursor:pointer;}
+</style>
+</head>
+<body>
+<button class="fixed-cart-btn" type="button" onclick="openCart()">View Cart</button>
+<h2 style="text-align:center;">🛒 Daqi Asia 热卖商品</h2>
+<div class="loading-tip">⏳ 加载商品中...</div>
+<div class="goods-wrap goods-box"></div>
+<div id="varModal" style="display:none;"></div>
 
-<html>
-  <head>
-    <title>Daqi Asia 跨境电商</title>
-    <style>
-      body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
-      h1 { text-align: center; color: #333; margin-bottom: 30px; }
-      .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-      .product-card { background: white; border-radius: 10px; padding: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); transition: transform 0.2s; }
-      .product-card:hover { transform: translateY(-5px); }
-      .product-card img { max-width: 100%; height: 200px; object-fit: cover; border-radius: 5px; }
-      .product-card h3 { font-size: 16px; margin: 10px 0; height: 40px; overflow: hidden; }
-      .product-card .price { color: #e44d26; font-size: 20px; font-weight: bold; }
-      .product-card .add-to-cart { background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 10px; font-size: 16px; }
-      .product-card .add-to-cart:hover { background: #45a049; }
-      .loading { text-align: center; padding: 50px; font-size: 18px; color: #666; }
-    </style>
-  </head>
-  <body>
-    <h1>🛒 Daqi Asia 热卖商品</h1>
-    <div id="product-container">
-      <div class="loading">⏳ 加载商品中...</div>
-    </div>
-    <!-- 外部 JS 文件 -->
-    <script is:inline src="/products.js"></script>
-  </body>
+<script is:inline>
+const WC_SITE = "https://daqi.asia";
+let allVarsData = null;
+window.selectedAttrs = {};
+
+async function openCart(){
+  const res = await fetch(`${WC_SITE}/wp-json/wc/store/cart`,{credentials:"include"});
+  const cart = await res.json();
+  console.log("购物车", cart);
+  alert("F12控制台查看购物车");
+}
+
+async function ajaxAddCart(pid, vid, qty, attrs){
+  const fd = new FormData();
+  fd.append('action','custom_ajax_add_cart');
+  fd.append('pid',pid);
+  fd.append('vid',vid);
+  fd.append('qty',qty);
+  fd.append('attrs',JSON.stringify(attrs));
+  try {
+    const resp = await fetch(`${WC_SITE}/wp-admin/admin-ajax.php`,{
+      method:"POST",
+      body: fd,
+      credentials:"include"
+    });
+    const ret = await resp.json();
+    if(ret.success){
+      alert(ret.data.msg + " 当前购物车数量：" + ret.data.cart_count);
+      document.getElementById("varModal").style.display = "none";
+      window.selectedAttrs = {};
+    } else {
+      alert(ret.data.msg);
+    }
+  } catch(err) {
+    alert("网络请求失败");
+    console.error(err);
+  }
+}
+
+async function openVarModal(pid){
+  const res = await fetch(`${WC_SITE}/wp-json/custom/v1/products/${pid}/vars`,{credentials:"include"});
+  allVarsData = await res.json();
+  const {attributes} = allVarsData;
+  let html = `<div class="modal-mask" onclick="closeModal(event)"><div class="modal-box" onclick="event.stopPropagation()"><h3>选择商品规格</h3>`;
+  Object.keys(attributes).forEach(key=>{
+    const name = key.replace('pa_','');
+    html += `<div class="attr-row"><label class="attr-label">${name}</label><select data-attr="${key}" onchange="window.selectedAttrs['${key}']=this.value"><option value="">请选择${name}</option>`;
+    attributes[key].forEach(opt=>{
+      html += `<option value="${opt}">${opt}</option>`;
+    });
+    html += `</select></div>`;
+  });
+  html += `<div class="modal-btns"><button class="cancel-btn" type="button" onclick="closeModal()">取消</button><button class="confirm-btn" type="button" onclick="submitVar(${pid})">确认加入</button></div></div></div>`;
+  document.getElementById("varModal").innerHTML = html;
+  document.getElementById("varModal").style.display = "block";
+}
+
+function closeModal(e){
+  if(e && e.target !== e.currentTarget) return;
+  document.getElementById("varModal").style.display = "none";
+  window.selectedAttrs = {};
+}
+
+function getMatchVid(){
+  if(!allVarsData) return null;
+  const {variations} = allVarsData;
+  for(const v of variations){
+    let match = true;
+    for(const k in window.selectedAttrs){
+      if(v.attributes[k] !== window.selectedAttrs[k]){
+        match = false;
+        break;
+      }
+    }
+    if(match) return v.variation_id;
+  }
+  return null;
+}
+
+async function submitVar(pid){
+  const vid = getMatchVid();
+  if(!vid){
+    alert("请完整选择所有规格");
+    return;
+  }
+  await ajaxAddCart(pid, vid, 1, window.selectedAttrs);
+}
+
+window.handleAdd = function(pid, type){
+  if(type === "simple"){
+    ajaxAddCart(pid, 0, 1, []);
+  } else {
+    openVarModal(pid);
+  }
+}
+
+const goodsBox = document.querySelector(".goods-box");
+const tip = document.querySelector(".loading-tip");
+tip.style.display = "none";
+let html = `<div class="goods-grid">`;
+{products.map(item => {
+  const img = item.images?.[0]?.thumbnail || "";
+  html += `
+  <div class="goods-card">
+    <a href="/products/${item.id}">
+      <img class="goods-img" src="${img}" alt="${item.name}">
+    </a>
+    <a href="/products/${item.id}"><h4>${item.name}</h4></a>
+    <div style="color:#c00;">${item.prices.price_html}</div>
+    <button class="add-cart-btn" type="button" onclick="handleAdd(${item.id}, '${item.type}')">
+      ${item.type==='variable' ? '选择规格加入' : 'Add To Cart'}
+    </button>
+  </div>`;
+})}
+html += `</div>`;
+goodsBox.innerHTML = html;
+</script>
+</body>
 </html>
