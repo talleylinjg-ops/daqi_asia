@@ -1,10 +1,40 @@
 ---
 const WC_SITE = "https://daqi.asia";
-async function getProducts() {
-  const res = await fetch(`${WC_SITE}/wp-json/wc/store/products`, {credentials: "include"});
-  return await res.json();
+let products = [];
+let productHtml = "";
+let fetchError = false;
+
+try {
+  const res = await fetch(`${WC_SITE}/wp-json/wc/store/products`, {
+    headers: { "Accept": "application/json" },
+    signal: AbortSignal.timeout(8000)
+  });
+  if (res.ok) {
+    products = await res.json();
+    productHtml = `<div class="goods-grid">`;
+    for (const item of products) {
+      const img = item.images?.[0]?.thumbnail || "";
+      const priceHtml = item.prices?.price_html || "";
+      productHtml += `
+        <div class="goods-card">
+          <a href="/products/${item.id}">
+            <img class="goods-img" src="${img}" alt="${item.name}">
+          </a>
+          <a href="/products/${item.id}"><h4>${item.name}</h4></a>
+          <div style="color:#c00;">${priceHtml}</div>
+          <button class="add-cart-btn" type="button" onclick="handleAdd(${item.id}, '${item.type}')">
+            ${item.type === 'variable' ? '选择规格加入' : 'Add To Cart'}
+          </button>
+        </div>`;
+    }
+    productHtml += `</div>`;
+  } else {
+    fetchError = true;
+  }
+} catch (e) {
+  console.error("获取商品失败:", e);
+  fetchError = true;
 }
-const products = await getProducts();
 ---
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -14,10 +44,10 @@ const products = await getProducts();
 <style>
   .goods-wrap {max-width: 1240px;margin: 0 auto;padding: 20px;}
   .goods-grid {display: grid;grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));gap: 20px;}
-  .goods-card {border: 1px solid #eee;padding: 12px;border-radius: 8px;}
+  .goods-card {border: 1px solid #eee;padding: 12px;border-radius: 8px;background:#fff;}
   .goods-img {width: 100%;height: 200px;object-fit: cover;border-radius: 4px;}
   .add-cart-btn {width: 100%;padding: 8px 0;background: #007bff;color: #fff;border: none;border-radius: 4px;margin-top: 10px;cursor: pointer;}
-  .loading-tip {text-align: center;font-size: 16px;padding: 30px 0;}
+  .loading-tip {text-align: center;font-size: 16px;padding: 30px 0;color:#999;}
   .modal-mask {position: fixed;inset: 0;background: rgba(0,0,0,0.5);display: flex;align-items: center;justify-content: center;z-index:999;}
   .modal-box {background:#fff;padding:24px;border-radius:10px;width:90%;max-width:500px;}
   .attr-row {margin:12px 0;}
@@ -26,14 +56,18 @@ const products = await getProducts();
   .modal-btns {display:flex;gap:10;margin-top:20px;}
   .cancel-btn {flex:1;padding:10px;border:1px solid #999;background:#fff;cursor:pointer;}
   .confirm-btn {flex:1;padding:10px;background:#007bff;color:#fff;border:none;cursor:pointer;}
-  .fixed-cart-btn {position:fixed;top:10px;right:10px;padding:6px 12px;background:#333;color:#fff;border:none;border-radius:4px;cursor:pointer;}
+  .fixed-cart-btn {position:fixed;top:10px;right:10px;padding:6px 12px;background:#333;color:#fff;border:none;border-radius:4px;cursor:pointer;z-index:100;}
 </style>
 </head>
 <body>
 <button class="fixed-cart-btn" type="button" onclick="openCart()">View Cart</button>
 <h2 style="text-align:center;">🛒 Daqi Asia 热卖商品</h2>
-<div class="loading-tip">⏳ 加载商品中...</div>
-<div class="goods-wrap goods-box"></div>
+
+{fetchError ? '<p style="text-align:center;color:#c00;padding:20px;">商品数据加载失败，请稍后刷新重试</p>' : ''}
+
+<div class="goods-wrap">
+  <div class="goods-box" set:html={productHtml}></div>
+</div>
 <div id="varModal" style="display:none;"></div>
 
 <script is:inline>
@@ -131,27 +165,6 @@ window.handleAdd = function(pid, type){
     openVarModal(pid);
   }
 }
-
-const goodsBox = document.querySelector(".goods-box");
-const tip = document.querySelector(".loading-tip");
-tip.style.display = "none";
-let html = `<div class="goods-grid">`;
-{products.map(item => {
-  const img = item.images?.[0]?.thumbnail || "";
-  html += `
-  <div class="goods-card">
-    <a href="/products/${item.id}">
-      <img class="goods-img" src="${img}" alt="${item.name}">
-    </a>
-    <a href="/products/${item.id}"><h4>${item.name}</h4></a>
-    <div style="color:#c00;">${item.prices.price_html}</div>
-    <button class="add-cart-btn" type="button" onclick="handleAdd(${item.id}, '${item.type}')">
-      ${item.type==='variable' ? '选择规格加入' : 'Add To Cart'}
-    </button>
-  </div>`;
-})}
-html += `</div>`;
-goodsBox.innerHTML = html;
 </script>
 </body>
 </html>
