@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Daqi Asia - Online Shopping Store</title>
+  <meta name="description" content="Daqi Asia online shopping storefront with free shipping on eligible orders.">
+  <link rel="preconnect" href="https://daqi.asia" crossorigin>
+  <link rel="icon" type="image/png" href="/assets/img/icon.png">
+  <link rel="apple-touch-icon" href="/assets/img/icon.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=20260723-single-cart-checkout">
+</head>
+<body>
+  <div class="notice-bar">
+    <div class="container notice-inner">
+      <span>FREE SHIPPING MORE THAN USD69 in most countries!</span>
+      <button class="notice-close" type="button" aria-label="Close notice">&times;</button>
+    </div>
+  </div>
+
+  <div class="utility-bar">
+    <div class="container utility-inner">
+      <span>Good prices, free shipping</span>
+      <nav aria-label="Utility navigation">
+        <a href="https://daqi.asia/track-your-order/" target="_blank" rel="noopener">Track Your Order</a>
+        <a href="https://daqi.asia/store-location/" target="_blank" rel="noopener">Store Location</a>
+        <a href="https://daqi.asia/press/" target="_blank" rel="noopener">Press</a>
+      </nav>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div class="container header-grid storefront-header">
+      <a class="brand" href="/" aria-label="Daqi home">
+        <img src="/assets/img/logo.jpg" alt="Daqi logo">
+      </a>
+
+      <button class="desktop-menu-button" id="desktopMenuBtn" type="button" aria-label="Open navigation menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <form class="search-form" id="searchForm">
+        <select id="categorySearchSelect" aria-label="Search category">
+          <option value="">All</option>
+        </select>
+        <input type="search" id="headerSearch" placeholder="I'm shopping for..." autocomplete="off">
+        <button type="submit" id="searchBtn">Search</button>
+      </form>
+
+      <a class="whatsapp-link" href="https://wa.me/8613806088500" target="_blank" rel="noopener" aria-label="WhatsApp hotline">
+        <span class="phone-mark">☎</span>
+        <span><small>Hotline WhatsApp</small><strong>+86 138 060 88500</strong></span>
+      </a>
+
+      <div class="header-actions">
+        <button class="cart-action" type="button" id="openCartBtn" aria-label="Cart"><span>Bag</span><b>0</b></button>
+        <a class="member-action" href="https://daqi.asia/my-account/" target="_blank" rel="noopener" aria-label="Log in or register">
+          <img src="/assets/img/account-icon.jpg" alt="">
+          <strong>Log in<br>Register</strong>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <header class="mobile-site-header">
+    <a class="mobile-brand" href="/" aria-label="Daqi home">
+      <img src="/assets/img/logo.jpg" alt="Daqi logo">
+    </a>
+    <div class="mobile-top-actions">
+      <button class="mobile-drawer-button" id="mobileDrawerBtn" type="button" aria-label="Open menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <button type="button" id="mobileHeaderCart" aria-label="Cart">
+        <span class="bag-icon">Bag</span>
+        <span class="cart-badge">0</span>
+      </button>
+      <a href="https://daqi.asia/my-account/" target="_blank" rel="noopener" aria-label="Account">
+        <img class="account-icon-img" src="/assets/img/account-icon.jpg" alt="">
+      </a>
+    </div>
+  </header>
+
+  <div class="mobile-drawer-overlay" id="mobileDrawerOverlay"></div>
+  <aside class="mobile-drawer" id="mobileDrawer" aria-label="Mobile menu">
+    <div class="mobile-drawer-head">
+      <strong>Daqi</strong>
+      <button type="button" id="mobileDrawerClose" aria-label="Close menu">&times;</button>
+    </div>
+    <a href="/shop/">Shop</a>
+    <a href="/shop/">Categories</a>
+    <div class="mobile-drawer-categories" id="mobileDrawerCategories"></div>
+    <a href="https://daqi.asia/track-your-order/" target="_blank" rel="noopener">Track Order</a>
+    <a href="https://daqi.asia/about-us/" target="_blank" rel="noopener">About Us</a>
+    <a href="https://daqi.asia/contact-us/" target="_blank" rel="noopener">Contact Us</a>
+  </aside>
+
+  <nav class="main-nav">
+    <div class="nav-inner category-nav" id="categoryNav">
+      <a href="/shop/product-category/food/" data-nav-category="food">Food</a>
+      <a href="/shop/product-category/3c-item/" data-nav-category="3c-item">3C Item</a>
+      <a href="/shop/product-category/fashion/" data-nav-category="fashion">Fashion</a>
+      <a href="/shop/product-category/house-item/" data-nav-category="house-item">House Item</a>
+      <a href="/shop/product-category/beauty/" data-nav-category="beauty">Beauty</a>
+      <a href="/shop/product-category/health-care/" data-nav-category="health-care">Health & Care</a>
+      <a href="/shop/product-category/pet-item/" data-nav-category="pet-item">Pet Item</a>
+      <a href="/shop/product-category/sports-outdoor/" data-nav-category="sports-outdoor">Sports & Outdoor</a>
+      <a href="/shop/product-category/country-shop/" data-nav-category="country-shop">Country Shop</a>
+    </div>
+  </nav>
+
+  <main>
+    <section class="mobile-hero-slider" id="mobileHomeHero" aria-label="Featured sale products">
+      <div class="mobile-slider-track" id="mobileHeroTrack"></div>
+      <div class="mobile-slider-dots" id="mobileHeroDots"></div>
+    </section>
+
+    <section class="hero storefront-home" hidden>
+      <div class="container home-showcase">
+        <div class="home-slider" id="homePromoSlider">
+          <button class="home-slider-arrow prev" type="button" id="homeSlidePrev" aria-label="Previous promotion">‹</button>
+          <div class="home-slider-track" id="homePromoTrack"></div>
+          <button class="home-slider-arrow next" type="button" id="homeSlideNext" aria-label="Next promotion">›</button>
+          <div class="home-slider-dots" id="homePromoDots"></div>
+        </div>
+        <a class="side-promo" id="homeSidePromo" href="/shop/">
+          <strong>Men's fashion for four seasons</strong>
+          <span>Starting at $0.99</span>
+          <img src="/assets/img/placeholder.png" alt="Featured Daqi product" loading="lazy" decoding="async">
+        </a>
+      </div>
+    </section>
+
+    <section class="container category-strip home-category-section" id="featured-categories" hidden>
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Shop By Category</p>
+        </div>
+        <a href="/shop/">View all products</a>
+      </div>
+      <div class="category-grid" id="featuredCategoryGrid"></div>
+    </section>
+
+    <section class="container product-detail-page" id="productDetailPage" hidden></section>
+
+    <section class="container cart-page" id="cartPage" hidden>
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Cart</p>
+          <h2>Your Cart</h2>
+        </div>
+      </div>
+      <div class="local-cart" id="localCart"></div>
+    </section>
+
+    <section class="container catalog-section" id="mainCatalogSection">
+      <div class="section-head catalog-head">
+        <div>
+          <p class="eyebrow" id="sectionKicker">Selected Products</p>
+          <h2 id="mainSectionTitle">Featured Products</h2>
+        </div>
+        <div class="catalog-tools">
+          <select id="perPageSelect" aria-label="Products per page">
+            <option value="10">10 per page</option>
+            <option value="20">20 per page</option>
+            <option value="30">30 per page</option>
+            <option value="40">40 per page</option>
+            <option value="50">50 per page</option>
+          </select>
+          <select id="sortSelect" aria-label="Sort products">
+            <option value="newest">Newest</option>
+            <option value="price-low">Price: Low to High</option>
+            <option value="price-high">Price: High to Low</option>
+            <option value="sale">On Sale</option>
+          </select>
+        </div>
+      </div>
+      <div class="catalog-layout">
+        <aside class="shop-sidebar" id="shopSidebar" aria-label="Shop categories"></aside>
+        <div class="catalog-main">
+          <div class="product-grid" id="productGrid"></div>
+          <div class="pagination" id="pagination"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="container catalog-section deals-section" id="dealsSection">
+      <div class="section-head">
+        <div>
+          <h2>Deals Of The Day</h2>
+        </div>
+      </div>
+      <div class="product-grid compact" id="dealsGrid"></div>
+    </section>
+
+    <section class="service-row" hidden>
+      <div class="container service-grid">
+        <div class="service-item"><b>Fast Delivery</b><span>International shipping support</span></div>
+        <div class="service-item"><b>90 Days Return</b><span>For eligible product issues</span></div>
+        <div class="service-item"><b>Secure Payment</b><span>Checkout handled by original store</span></div>
+        <div class="service-item"><b>Large Catalog</b><span>Daily goods across major categories</span></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer" hidden>
+    <div class="container footer-grid">
+      <div>
+        <h3>Daqi</h3>
+        <p>English storefront for browsing Daqi Asia products with checkout handled securely by Daqi.</p>
+      </div>
+      <div>
+        <h4>Information</h4>
+        <a href="https://daqi.asia/about-us/" target="_blank" rel="noopener">About Us</a>
+        <a href="https://daqi.asia/contact-us/" target="_blank" rel="noopener">Contact Us</a>
+        <a href="https://daqi.asia/privacy-policy/" target="_blank" rel="noopener">Privacy Policy</a>
+      </div>
+      <div>
+        <h4>Quick Links</h4>
+        <a href="/">Home</a>
+        <a href="/shop/">Shop</a>
+        <a href="/cart/" target="_blank" rel="noopener">Cart</a>
+      </div>
+      <div>
+        <h4>Support</h4>
+        <a href="https://daqi.asia/track-your-order/" target="_blank" rel="noopener">Track Order</a>
+        <a href="https://daqi.asia/my-account/" target="_blank" rel="noopener">My Account</a>
+        <a href="https://daqi.asia/contact-us/" target="_blank" rel="noopener">Help Center</a>
+      </div>
+    </div>
+    <div class="container footer-bottom">&copy; 2025-2026 Daqi Asia. All rights reserved.</div>
+  </footer>
+
+  <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
+    <a class="active" href="/"><span class="mobile-nav-icon">&#8962;</span><span>Home</span></a>
+    <button type="button" id="mobileCategoryBtn"><span class="mobile-nav-icon">&#9776;</span><span>Category</span></button>
+    <button type="button" id="mobileSearchBtn"><span class="mobile-nav-icon">&#9906;</span><span>Search</span></button>
+      <button type="button" id="mobileCartBtn"><span class="mobile-nav-icon mobile-bag-shape"></span><span>Cart</span></button>
+  </nav>
+
+  <div class="mobile-search-overlay" id="mobileSearchOverlay" aria-hidden="true">
+    <form class="mobile-search-panel" id="mobileSearchForm">
+      <button class="mobile-search-close" id="mobileSearchClose" type="button" aria-label="Close search">&times;</button>
+      <strong>Search Daqi</strong>
+      <select id="mobileCategorySearchSelect" aria-label="Mobile search category">
+        <option value="">All</option>
+      </select>
+      <input type="search" id="mobileSearchInput" placeholder="I'm shopping for..." autocomplete="off">
+      <button type="submit">Search</button>
+    </form>
+  </div>
+
+  <div class="age-overlay" id="ageOverlay" aria-hidden="true">
+    <div class="age-dialog" role="dialog" aria-modal="true" aria-labelledby="ageTitle">
+      <p class="eyebrow">Age Restricted Category</p>
+      <h2 id="ageTitle">Adults only, 18+</h2>
+      <p>This category may contain adult products. Please confirm your age before entering.</p>
+      <div class="age-actions">
+        <button type="button" id="ageConfirmBtn">I am 18 or older</button>
+        <button type="button" id="ageExitBtn">I am under 18</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/assets/js/app.js?v=20260723-single-cart-checkout" defer></script>
+</body>
+</html>

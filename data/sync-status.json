@@ -1,0 +1,19 @@
+{
+  "synced_at": "2026-07-07T02:39:52.206Z",
+  "site": "https://daqi.asia",
+  "results": [
+    {
+      "label": "products",
+      "ok": false,
+      "count": 727,
+      "error": "products?status=publish page 3 returned non-JSON after 200 records: Unexpected token '<', \"<br />\n<b>\"... is not valid JSON"
+    },
+    {
+      "label": "categories",
+      "ok": false,
+      "count": 137,
+      "error": "products/categories?hide_empty=true page 3 returned non-JSON after 20 records: Unexpected token '<', \"<br />\n<b>\"... is not valid JSON; derived 137 categories from synced products"
+    }
+  ],
+  "note": "If ok is false, the original WordPress/WooCommerce REST API returned an error. Existing local JSON data was kept."
+}
